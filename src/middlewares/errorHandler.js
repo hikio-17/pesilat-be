@@ -12,5 +12,6 @@ exports.errorHandler = (err, req, res, next) => {
     status: 'error',
     message: err || 'Internal server error',
   });
+  console.log(err);
   next();
 };
