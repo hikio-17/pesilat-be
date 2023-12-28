@@ -14,8 +14,8 @@ const { validateUserRegister } = require('../validators/userRegisterValidate');
 const router = express.Router();
 
 router.post('/auth', asyncHandler(async (req, res) => {
-  const { nik, password } = req.body;
-  const user = await database('users').where({ nik }).first();
+  const { ktp, password } = req.body;
+  const user = await database('users').where({ ktp }).first();
 
   if (!user) {
     throw new AuthenticationError('NIK anda belum terdaftar. silahkan daftar terlebih dahulu');
@@ -71,8 +71,23 @@ router.post(
       },
       body: formData,
     });
+    
 
-    // const result = await database('users').insert(data);
+    const fullName = req.body.fullName;
+    const alamat = req.body.alamat;
+    const password = await bcrypt.hash(`${req.body.password}`, 8);
+    const email = req.body.email;
+    const phone = req.body.phone;
+    const ktp = req.body.ktp;
+
+    const result = await database('users').insert({
+      fullName,
+      alamat,
+      password,
+      email,
+      phone,
+      ktp
+    });
 
     if (response.status === 200) {
       res.status(201).json({

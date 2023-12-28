@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const InvariantError = require('../exeptions/InvariantError');
 
 exports.validateUserRegister = [
-  body('fullname')
+  body('fullName')
     .notEmpty().withMessage('Nama lengkap tidak boleh kosong.')
     .isString()
     .withMessage('Nama lengkap harus berupa string'),
@@ -26,6 +26,12 @@ exports.validateUserRegister = [
     .isString()
     .isLength({ min: 9 })
     .withMessage('Nomor HP harus lebih dari 6 karakter'),
+    body('ktp')
+    .notEmpty().withMessage('NIK tidak boleh kosong')
+    .isString()
+    .isLength(16)
+    .withMessage('NIK harus 16 karakter'),
+
 
   (req, res, next) => {
     const errors = validationResult(req);
