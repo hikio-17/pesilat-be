@@ -5,7 +5,7 @@ const { adminDepot, superAdmin, authCheck } = require('../middlewares/auth');
 
 const router = express.Router();
 
-router.get('/users', authCheck, adminDepot, superAdmin, asyncHandler(async (req, res) => {
+router.get('/users', asyncHandler(async (req, res) => {
   const users = await database('users');
 
   res.status(200).json({

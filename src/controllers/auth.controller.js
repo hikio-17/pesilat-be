@@ -14,8 +14,8 @@ const { validateUserRegister } = require('../validators/userRegisterValidate');
 const router = express.Router();
 
 router.post('/auth', asyncHandler(async (req, res) => {
-  const { nik, password } = req.body;
-  const user = await database('users').where({ nik }).first();
+  const { ktp, password } = req.body;
+  const user = await database('users').where({ ktp }).first();
 
   if (!user) {
     throw new AuthenticationError('NIK anda belum terdaftar. silahkan daftar terlebih dahulu');
@@ -43,48 +43,66 @@ router.post(
   validateUserRegister,
   asyncHandler(async (req, res) => {
     // Get AccessToken from API IOT
-    const responseAccessToken = await fetch(`${process.env.BASE_URL}/UserApi/authenticate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        apiKey: '123qweasd',
-      }),
-    });
+    // const responseAccessToken = await fetch(`${process.env.BASE_URL}/UserApi/authenticate`, {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify({
+    //     apiKey: '123qweasd',
+    //   }),
+    // });
 
-    const responseAccessTokenJson = await responseAccessToken.json();
+    // const responseAccessTokenJson = await responseAccessToken.json();
 
-    const { token } = responseAccessTokenJson;
+    // const { token } = responseAccessTokenJson;
 
-    // create from data
-    const formData = new FormData();
-    for (const [key, value] of Object.entries(req.body)) {
-      formData.set(key, value);
+    // // create from data
+    // const formData = new FormData();
+    // for (const [key, value] of Object.entries(req.body)) {
+    //   formData.set(key, value);
+    // }
+
+    // // Insert Data user in API IOT
+    // const response = await fetch(`${process.env.BASE_URL}/api/UserProfile/InsertData`, {
+    //   method: 'POST',
+    //   headers: {
+    //     Authorization: `Bearer ${token}`,
+    //   },
+    //   body: formData,
+    // });
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    const user = await database('users').insert({
+      role: 2,
+      ...req.body,
+      password: hashedPassword,
+    }).returning('*');
+
+    if (!user) {
+      throw new ClientError('Gagal membuat akun. silahkan hubungi admin');
     }
 
-    // Insert Data user in API IOT
-    const response = await fetch(`${process.env.BASE_URL}/api/UserProfile/InsertData`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
+    const accessToken = await createAccessToken(user[0]);
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Akun berhasil dibuat',
+      data: {
+        accessToken,
       },
-      body: formData,
     });
 
-    // const result = await database('users').insert(data);
-
-    if (response.status === 200) {
-      res.status(201).json({
-        status: 'success',
-        message: 'akun berhasil dibuat. silahkan login',
-        data: {
-          status: response.status,
-        },
-      });
-    } else {
-      throw new ClientError('Akun gagal dibuat. silahkan hubungi admin');
-    }
+    // if (response.status === 200) {
+    //   res.status(201).json({
+    //     status: 'success',
+    //     message: 'akun berhasil dibuat. silahkan login',
+    //     data: {
+    //       status: response.status,
+    //     },
+    //   });
+    // } else {
+    //   throw new ClientError('Akun gagal dibuat. silahkan hubungi admin');
+    // }
   }),
 );
 
