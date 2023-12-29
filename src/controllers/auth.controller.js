@@ -10,6 +10,7 @@ const AuthenticationError = require('../exeptions/AuthenticationError');
 const { createAccessToken } = require('../tokenize/tokenManager');
 const ClientError = require('../exeptions/ClientError');
 const { validateUserRegister } = require('../validators/userRegisterValidate');
+const InvariantError = require('../exeptions/InvariantError');
 
 const router = express.Router();
 
@@ -43,63 +44,73 @@ router.post(
   validateUserRegister,
   asyncHandler(async (req, res) => {
     // Get AccessToken from API IOT
-    const responseAccessToken = await fetch(`${process.env.BASE_URL}/UserApi/authenticate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        apiKey: '123qweasd',
-      }),
-    });
+    // const responseAccessToken = await fetch(`${process.env.BASE_URL}/UserApi/authenticate`, {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify({
+    //     apiKey: '123qweasd',
+    //   }),
+    // });
 
-    const responseAccessTokenJson = await responseAccessToken.json();
+    // const responseAccessTokenJson = await responseAccessToken.json();
 
-    const { token } = responseAccessTokenJson;
+    // const { token } = responseAccessTokenJson;
 
-    // create from data
-    const formData = new FormData();
-    for (const [key, value] of Object.entries(req.body)) {
-      formData.set(key, value);
+    // // create from data
+    // const formData = new FormData();
+    // for (const [key, value] of Object.entries(req.body)) {
+    //   formData.set(key, value);
+    // }
+
+    // // Insert Data user in API IOT
+    // const response = await fetch(`${process.env.BASE_URL}/api/UserProfile/InsertData`, {
+    //   method: 'POST',
+    //   headers: {
+    //     Authorization: `Bearer ${token}`,
+    //   },
+    //   body: formData,
+    // });
+    const checkAvailabilityUser = await database('users').where({ ktp: req.body.ktp }).first();
+
+    if (checkAvailabilityUser) {
+      throw new InvariantError('NIK yang anda gunakan sudah terdaftar');
+    }
+  
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    const user = await database('users').insert({
+      role: 2,
+      ...req.body,
+      password: hashedPassword,
+    }).returning('*');
+
+    if (!user) {
+      throw new ClientError('Gagal membuat akun. silahkan hubungi admin');
     }
 
-    // Insert Data user in API IOT
-    const response = await fetch(`${process.env.BASE_URL}/api/UserProfile/InsertData`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
+    const accessToken = await createAccessToken(user[0]);
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Akun berhasil dibuat',
+      data: {
+        accessToken,
       },
-      body: formData,
     });
     
 
-    const fullName = req.body.fullName;
-    const alamat = req.body.alamat;
-    const password = await bcrypt.hash(`${req.body.password}`, 8);
-    const email = req.body.email;
-    const phone = req.body.phone;
-    const ktp = req.body.ktp;
-
-    const result = await database('users').insert({
-      fullName,
-      alamat,
-      password,
-      email,
-      phone,
-      ktp
-    });
-
-    if (response.status === 200) {
-      res.status(201).json({
-        status: 'success',
-        message: 'akun berhasil dibuat. silahkan login',
-        data: {
-          status: response.status,
-        },
-      });
-    } else {
-      throw new ClientError('Akun gagal dibuat. silahkan hubungi admin');
-    }
+    // if (response.status === 200) {
+    //   res.status(201).json({
+    //     status: 'success',
+    //     message: 'akun berhasil dibuat. silahkan login',
+    //     data: {
+    //       status: response.status,
+    //     },
+    //   });
+    // } else {
+    //   throw new ClientError('Akun gagal dibuat. silahkan hubungi admin');
+    // }
   }),
 );
 

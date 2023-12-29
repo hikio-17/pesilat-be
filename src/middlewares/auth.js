@@ -9,20 +9,18 @@ exports.authCheck = asyncHandler(async (req, res, next) => {
     throw new AuthenticationError('Akses token diperlukan');
   }
   await verifyAccessToken(token);
-  const decode = await decodePayload(token);
+  const { user } = await decodePayload(token);
 
-  if (!decode) {
+  if (!user) {
     throw new AuthenticationError('Token yang anda berikan tidak valid.');
   }
 
-  req.user = {
-    ...decode,
-  };
+  req.user = user;
   next();
 });
 
 exports.adminDepot = asyncHandler(async (req, res, next) => {
-  if (req.user.role !== 0 && req.user.role !== 1) {
+  if (req.user.role !== 1) {
     throw new AuthorizationError('Anda tidak berhak mengakses resource ini');
   }
 

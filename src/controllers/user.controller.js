@@ -4,6 +4,7 @@ const NotFoundError = require('../exeptions/NotFoundError');
 const ClientError = require('../exeptions/ClientError');
 const { database } = require('../database');
 const { adminDepot, superAdmin, authCheck } = require('../middlewares/auth');
+const InvariantError = require('../exeptions/InvariantError');
 
 const router = express.Router();
 
@@ -35,34 +36,23 @@ router.get('/users/:id', asyncHandler(async (req, res) => {
 }));
 
 router.post('/users', asyncHandler(async (req, res) => {
-  const {
-    fullName,
-    alamat,
-    password,
-    phone,
-    ktp,
-    role
-  } = req.body;
 
-  const newUser = await database('users').insert({
-    fullName,
-    alamat,
-    password,
-    phone,
-    ktp,
-    role
-  });
+  const checkAvailabiltyUser = await database('users').where({ ktp: req.body.ktp }).first();
 
-  if (!newUser) {
-    throw new ClientError('Terjadi kesalahan dalam memasukan data');
+  if (checkAvailabiltyUser) {
+    throw new InvariantError(`NIK: ${req.body.ktp} sudah terdaftar`);
   }
 
-  const createdUser = await database('users').where({ id: newUser[0] }).first();
+  const user = await database('users').insert(req.body).returning('*');
+
+  if (!user) {
+    throw new ClientError('Terjadi kesalahan dalam memasukan data');
+  }
 
   res.status(200).json({
     status: 'success',
     data: {
-      user: createdUser,
+      user
     },
   });
 }));
