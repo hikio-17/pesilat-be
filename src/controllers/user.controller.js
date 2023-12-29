@@ -36,6 +36,7 @@ router.get('/users/:id', asyncHandler(async (req, res) => {
 }));
 
 router.post('/users', asyncHandler(async (req, res) => {
+
   const checkAvailabiltyUser = await database('users').where({ ktp: req.body.ktp }).first();
 
   if (checkAvailabiltyUser) {
@@ -62,9 +63,9 @@ router.patch('/users/:id', asyncHandler(async (req, res) => {
     fullName,
     alamat,
     password,
-    email,
     phone,
-    ktp
+    ktp,
+    role
   } = req.body;
 
   const existingUser = await database('users').where({ id }).first();
@@ -111,7 +112,8 @@ router.patch('/users/:id', asyncHandler(async (req, res) => {
     password,
     email,
     phone,
-    ktp
+    ktp,
+    role
   });
 
   const updatedUser = await database('users').where({ id }).first();
