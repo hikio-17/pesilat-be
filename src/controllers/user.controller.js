@@ -4,6 +4,7 @@ const NotFoundError = require('../exeptions/NotFoundError');
 const ClientError = require('../exeptions/ClientError');
 const { database } = require('../database');
 const { adminDepot, superAdmin, authCheck } = require('../middlewares/auth');
+const InvariantError = require('../exeptions/InvariantError');
 
 const router = express.Router();
 
@@ -34,31 +35,26 @@ router.get('/users/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-// router.post('/users', asyncHandler(async (req, res) => {
-//   const {
-//     name, nik, address, phone,
-//   } = req.body;
+router.post('/users', asyncHandler(async (req, res) => {
+  const checkAvailabiltyUser = await database('users').where({ ktp: req.body.ktp }).first();
 
-//   const newUser = await database('users').insert({
-//     name,
-//     nik,
-//     address,
-//     phone,
-//   });
+  if (checkAvailabiltyUser) {
+    throw new InvariantError(`NIK: ${req.body.ktp} sudah terdaftar`);
+  }
 
-//   if (!newUser) {
-//     throw new ClientError('Terjadi kesalahan dalam memasukan data');
-//   }
+  const user = await database('users').insert(req.body).returning('*');
 
-//   const createdUser = await database('users').where({ id: newUser[0] }).first();
+  if (!user) {
+    throw new ClientError('Terjadi kesalahan dalam memasukan data');
+  }
 
-//   res.status(200).json({
-//     status: 'success',
-//     data: {
-//       user: createdUser,
-//     },
-//   });
-// }));
+  res.status(200).json({
+    status: 'success',
+    data: {
+      user
+    },
+  });
+}));
 
 router.patch('/users/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;

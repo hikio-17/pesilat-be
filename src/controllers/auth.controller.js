@@ -10,6 +10,7 @@ const AuthenticationError = require('../exeptions/AuthenticationError');
 const { createAccessToken } = require('../tokenize/tokenManager');
 const ClientError = require('../exeptions/ClientError');
 const { validateUserRegister } = require('../validators/userRegisterValidate');
+const InvariantError = require('../exeptions/InvariantError');
 
 const router = express.Router();
 
@@ -71,6 +72,12 @@ router.post(
     //   },
     //   body: formData,
     // });
+    const checkAvailabilityUser = await database('users').where({ ktp: req.body.ktp }).first();
+
+    if (checkAvailabilityUser) {
+      throw new InvariantError('NIK yang anda gunakan sudah terdaftar');
+    }
+  
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
     const user = await database('users').insert({
       role: 2,
