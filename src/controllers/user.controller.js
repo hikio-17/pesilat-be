@@ -1,5 +1,7 @@
 const express = require('express');
 const asyncHandler = require('express-async-handler');
+const NotFoundError = require('../exeptions/NotFoundError');
+const ClientError = require('../exeptions/ClientError');
 const { database } = require('../database');
 const { adminDepot, superAdmin, authCheck } = require('../middlewares/auth');
 
@@ -13,6 +15,134 @@ router.get('/users', asyncHandler(async (req, res) => {
     data: {
       users,
     },
+  });
+}));
+
+router.get('/users/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const user = await database('users').where({ id }).first();
+
+  if (!user) {
+    throw new NotFoundError('User tidak ditemukan');
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      user,
+    },
+  });
+}));
+
+// router.post('/users', asyncHandler(async (req, res) => {
+//   const {
+//     name, nik, address, phone,
+//   } = req.body;
+
+//   const newUser = await database('users').insert({
+//     name,
+//     nik,
+//     address,
+//     phone,
+//   });
+
+//   if (!newUser) {
+//     throw new ClientError('Terjadi kesalahan dalam memasukan data');
+//   }
+
+//   const createdUser = await database('users').where({ id: newUser[0] }).first();
+
+//   res.status(200).json({
+//     status: 'success',
+//     data: {
+//       user: createdUser,
+//     },
+//   });
+// }));
+
+router.patch('/users/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const {
+    fullName,
+    alamat,
+    password,
+    email,
+    phone,
+    ktp
+  } = req.body;
+
+  const existingUser = await database('users').where({ id }).first();
+
+  if (!existingUser) {
+    throw new NotFoundError('User tidak ditemukan');
+  }
+
+  // const responseAccessToken = await axios.post(`${process.env.BASE_URL}/UserApi/authenticate`, {
+  //   method: 'POST',
+  //   headers: {
+  //     'Content-Type': 'application/json',
+  //   },
+  //   body: JSON.stringify({
+  //     apiKey: '123qweasd',
+  //   }),
+  // });
+
+  // const responseAccessTokenJson = await responseAccessToken.json();
+
+  //   const { token } = responseAccessTokenJson;
+
+  // const dataToSend = {
+  //   id,
+  //   fullName,
+  //   alamat,
+  //   password,
+  //   email,
+  //   phone,
+  //   ktp
+  // };
+
+  // await axios.post('https://waterpositive.my.id/api/UserProfile/UpdateData', {
+  //   method: 'POST',
+  //   headers: {
+  //     Authorization: `Bearer ${token}`,
+  //   },
+  //   body: dataToSend,
+  // });
+
+  await database('users').where({ id }).update({
+    fullName,
+    alamat,
+    password,
+    email,
+    phone,
+    ktp
+  });
+
+  const updatedUser = await database('users').where({ id }).first();
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      user: updatedUser,
+    },
+  });
+}));
+
+router.delete('/users/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const user = await database('users').where({ id }).first();
+
+  if (!user) {
+    throw new NotFoundError('User tidak ditemukan');
+  }
+
+  // await axios.post('https://waterpositive.my.id/api/UserProfile/DeleteData', { id });
+
+  await database('users').where({ id }).del();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'User deleted successfully',
   });
 }));
 
