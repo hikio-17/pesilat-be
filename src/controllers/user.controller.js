@@ -34,31 +34,38 @@ router.get('/users/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-// router.post('/users', asyncHandler(async (req, res) => {
-//   const {
-//     name, nik, address, phone,
-//   } = req.body;
+router.post('/users', asyncHandler(async (req, res) => {
+  const {
+    fullName,
+    alamat,
+    password,
+    phone,
+    ktp,
+    role
+  } = req.body;
 
-//   const newUser = await database('users').insert({
-//     name,
-//     nik,
-//     address,
-//     phone,
-//   });
+  const newUser = await database('users').insert({
+    fullName,
+    alamat,
+    password,
+    phone,
+    ktp,
+    role
+  });
 
-//   if (!newUser) {
-//     throw new ClientError('Terjadi kesalahan dalam memasukan data');
-//   }
+  if (!newUser) {
+    throw new ClientError('Terjadi kesalahan dalam memasukan data');
+  }
 
-//   const createdUser = await database('users').where({ id: newUser[0] }).first();
+  const createdUser = await database('users').where({ id: newUser[0] }).first();
 
-//   res.status(200).json({
-//     status: 'success',
-//     data: {
-//       user: createdUser,
-//     },
-//   });
-// }));
+  res.status(200).json({
+    status: 'success',
+    data: {
+      user: createdUser,
+    },
+  });
+}));
 
 router.patch('/users/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -66,9 +73,9 @@ router.patch('/users/:id', asyncHandler(async (req, res) => {
     fullName,
     alamat,
     password,
-    email,
     phone,
-    ktp
+    ktp,
+    role
   } = req.body;
 
   const existingUser = await database('users').where({ id }).first();
@@ -115,7 +122,8 @@ router.patch('/users/:id', asyncHandler(async (req, res) => {
     password,
     email,
     phone,
-    ktp
+    ktp,
+    role
   });
 
   const updatedUser = await database('users').where({ id }).first();
