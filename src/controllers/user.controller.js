@@ -43,6 +43,12 @@ router.post('/users', asyncHandler(async (req, res) => {
     throw new InvariantError(`NIK: ${req.body.ktp} sudah terdaftar`);
   }
 
+  const checkAvailabiltyPhone = await database('users').where({ ktp: req.body.phone }).first();
+  
+  if (checkAvailabiltyPhone) {
+    throw new InvariantError(`NIK: ${req.body.phone} sudah terdaftar`);
+  }
+
   const user = await database('users').insert(req.body).returning('*');
 
   if (!user) {
