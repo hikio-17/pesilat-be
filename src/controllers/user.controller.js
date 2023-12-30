@@ -3,6 +3,7 @@ const asyncHandler = require('express-async-handler');
 const NotFoundError = require('../exeptions/NotFoundError');
 const ClientError = require('../exeptions/ClientError');
 const { database } = require('../database');
+const bcrypt = require('bcrypt');
 const { adminDepot, superAdmin, authCheck } = require('../middlewares/auth');
 const InvariantError = require('../exeptions/InvariantError');
 
@@ -37,19 +38,36 @@ router.get('/users/:id', asyncHandler(async (req, res) => {
 
 router.post('/users', asyncHandler(async (req, res) => {
 
-  const checkAvailabiltyUser = await database('users').where({ ktp: req.body.ktp }).first();
+  const {
+    fullName,
+    alamat,
+    password,
+    phone,
+    ktp,
+    role
+  } = req.body;
+
+  const checkAvailabiltyUser = await database('users').where({ ktp }).first();
 
   if (checkAvailabiltyUser) {
-    throw new InvariantError(`NIK: ${req.body.ktp} sudah terdaftar`);
+    throw new InvariantError(`NIK: ${ktp} sudah terdaftar`);
   }
 
-  const checkAvailabiltyPhone = await database('users').where({ ktp: req.body.phone }).first();
-  
+  const checkAvailabiltyPhone = await database('users').where({ phone }).first();
+
   if (checkAvailabiltyPhone) {
-    throw new InvariantError(`NIK: ${req.body.phone} sudah terdaftar`);
+    throw new InvariantError(`Telepon: ${phone} sudah terdaftar`);
   }
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-  const user = await database('users').insert(req.body).returning('*');
+  const user = await database('users').insert({
+    fullName,
+    alamat,
+    password: hashedPassword,
+    phone,
+    ktp,
+    role
+  }).returning('*');
 
   if (!user) {
     throw new ClientError('Terjadi kesalahan dalam memasukan data');
@@ -63,7 +81,7 @@ router.post('/users', asyncHandler(async (req, res) => {
   });
 }));
 
-router.patch('/users/:id', asyncHandler(async (req, res) => {
+router.put('/users/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const {
     fullName,
@@ -111,12 +129,12 @@ router.patch('/users/:id', asyncHandler(async (req, res) => {
   //   },
   //   body: dataToSend,
   // });
+  const hashedPassword = await bcrypt.hash(password, 10);
 
   await database('users').where({ id }).update({
     fullName,
     alamat,
-    password,
-    email,
+    password: hashedPassword,
     phone,
     ktp,
     role
