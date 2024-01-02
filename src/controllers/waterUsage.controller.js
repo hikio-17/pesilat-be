@@ -5,8 +5,6 @@ const { database } = require('../database');
 const ClientError = require('../exeptions/ClientError');
 const NotFoundError = require('../exeptions/NotFoundError');
 const AuthorizationError = require('../exeptions/AuthorizationError');
-const { validateWaterDepotData } = require('../validators/waterDepotValidate');
-const { validateWaterDepotUpdateData } = require('../validators/waterDepotUpdateValidate');
 const { superAdmin, authCheck } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -57,7 +55,7 @@ router.get('/water-usage/daily/:userid', authCheck, superAdmin, asyncHandler(asy
     const waterUsage = await database('waterusage').where({ userid }).first();
 
     if (!waterUsage) {
-        throw new NotFoundError(`Water Depot dengan id ${userid} tidak ditemukan`);
+        throw new NotFoundError(`Water Usage dengan id ${userid} tidak ditemukan`);
     }
 
     res.status(200).json({
@@ -150,7 +148,7 @@ router.get('/water-usage/monthly/:userid', authCheck, superAdmin, asyncHandler(a
         .orderBy('tanggal'); 
 
     if (!waterUsage || waterUsage.length === 0) {
-        throw new NotFoundError(`Water Depot dengan id ${userid} tidak ditemukan`);
+        throw new NotFoundError(`Water Usage dengan id ${userid} tidak ditemukan`);
     }
 
     const monthlyData = {};
@@ -187,7 +185,7 @@ router.get('/water-usage/yearly/:userid', authCheck, superAdmin, asyncHandler(as
         .orderBy('tanggal'); 
 
     if (!waterUsage || waterUsage.length === 0) {
-        throw new NotFoundError(`Water Depot dengan id ${userid} tidak ditemukan`);
+        throw new NotFoundError(`Water Usage dengan id ${userid} tidak ditemukan`);
     }
 
     const yearlyData = {};
@@ -212,6 +210,40 @@ router.get('/water-usage/yearly/:userid', authCheck, superAdmin, asyncHandler(as
         },
     });
 }));
+
+router.post('/water-usage', asyncHandler(async (req, res) => {
+    console.log(req.body)
+    const waterUsage = await database('waterusage').insert(req.body).returning('*');
+
+  if (!waterUsage) {
+    throw new ClientError('Water Usage gagal dibuat. silahkan ulangi');
+  }
+
+  res.status(201).json({
+    status: 'success',
+    message: 'Water Usage berhasil dibuat',
+    data: {
+      waterUsage,
+    },
+  });
+}));
+
+router.delete('/water-usage/:id', asyncHandler(async (req, res) => {
+    const { id } = req.params;
+  
+    const waterDepot = await database('waterusage').where({ id }).first();
+  
+    if (!waterDepot) {
+      throw new NotFoundError(`Tidak dapat menghapus data. Water usage dengan id ${id} tidak ditemukan.`);
+    }
+  
+    await database('waterusage').where({ id }).del();
+  
+    res.status(200).json({
+      status: 'success',
+      message: `Water usage dengan id ${id} berhasil dihapus`,
+    });
+  }));
 
 
 
