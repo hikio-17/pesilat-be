@@ -129,12 +129,19 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
   //   },
   //   body: dataToSend,
   // });
-  const hashedPassword = await bcrypt.hash(password, 10);
+  let hashedPassword;
+  if (password) {
+    try {
+      hashedPassword = await bcrypt.hash(password, 10);
+    } catch (error) {
+      throw new Error('Error hashing password');
+    }
+  }
 
   await database('users').where({ id }).update({
     fullName,
     alamat,
-    password: hashedPassword,
+    password: hashedPassword || existingUser.password,
     phone,
     ktp,
     role
