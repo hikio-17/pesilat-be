@@ -37,7 +37,6 @@ router.get('/users/:id', asyncHandler(async (req, res) => {
 }));
 
 router.post('/users', asyncHandler(async (req, res) => {
-
   const {
     fullName,
     alamat,
