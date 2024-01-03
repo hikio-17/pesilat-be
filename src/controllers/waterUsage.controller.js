@@ -80,27 +80,27 @@ router.get('/admin/waterusage/weekly', asyncHandler(async (req, res) => {
     dailyData.forEach(entry => {
         const entryDate = new Date(entry.tanggal);
         const weekNumber = getWeekNumber(entryDate);
-        const month = entryDate.toLocaleString('default', { month: 'long' });
-        const year = entryDate.getFullYear();
 
-        const weekIdentifier = `minggu: ${weekNumber} , bulan: ${month}, tahun: ${year}`;
-
-        if (!weeklyData[weekIdentifier]) {
-            weeklyData[weekIdentifier] = {
+        if (!weeklyData[weekNumber]) {
+            weeklyData[weekNumber] = {
                 totalVolume: 0,
                 totalHarga: 0,
+                month: entryDate.toLocaleString('default', { month: 'long' }),
+                year: entryDate.getFullYear(),
             };
         }
-
-        weeklyData[weekIdentifier].totalVolume += entry.volume;
-        weeklyData[weekIdentifier].totalHarga += entry.totalHarga;
+        weeklyData[weekNumber].totalVolume += entry.volume;
+        weeklyData[weekNumber].totalHarga += entry.totalHarga;
     });
 
-    const responseWeeklyData = Object.keys(weeklyData).map(weekIdentifier => ({
-        minggu: weekIdentifier,
-        totalVolume: weeklyData[weekIdentifier].totalVolume,
-        totalHarga: weeklyData[weekIdentifier].totalHarga,
+    const responseWeeklyData = Object.keys(weeklyData).map(weekNumber => ({
+        minggu: parseInt(weekNumber),
+        bulan: weeklyData[weekNumber].month,
+        tahun: weeklyData[weekNumber].year,
+        totalVolume: weeklyData[weekNumber].totalVolume,
+        totalHarga: weeklyData[weekNumber].totalHarga,
     }));
+
 
     res.status(200).json({
         status: 'success',
@@ -115,8 +115,6 @@ router.get('/waterusage/weekly/:userid', asyncHandler(async (req, res) => {
     const { userid } = req.params;
 
     const dailyData = await database('waterusage').where({ userId: userid });
-
-    console.log(dailyData);
 
     if (!dailyData || dailyData.length === 0) {
         throw new NotFoundError(`Data harian untuk user dengan id ${userid} tidak ditemukan`);
@@ -166,7 +164,7 @@ router.get('/admin/waterusage/monthly', asyncHandler(async (req, res) => {
 
     const waterUsage = await database.select().from('waterusage');
 
-    const monthlyData = [];
+    const responseMonthlyData = [];
     waterUsage.forEach((usage) => {
         const date = new Date(usage.tanggal);
 
@@ -174,13 +172,13 @@ router.get('/admin/waterusage/monthly', asyncHandler(async (req, res) => {
             const year = date.getFullYear();
             const monthName = date.toLocaleString('default', { month: 'long' });
 
-            const existingMonthIndex = monthlyData.findIndex(data => data.bulan === monthName && data.tahun === year);
+            const existingMonthIndex = responseMonthlyData.findIndex(data => data.bulan === monthName && data.tahun === year);
 
             if (existingMonthIndex !== -1) {
-                monthlyData[existingMonthIndex].totalVolume += usage.volume;
-                monthlyData[existingMonthIndex].totalHarga += usage.totalHarga;
+                responseMonthlyData[existingMonthIndex].totalVolume += usage.volume;
+                responseMonthlyData[existingMonthIndex].totalHarga += usage.totalHarga;
             } else {
-                monthlyData.push({
+                responseMonthlyData.push({
                     bulan: monthName,
                     tahun: year,
                     totalVolume: usage.volume,
@@ -194,7 +192,9 @@ router.get('/admin/waterusage/monthly', asyncHandler(async (req, res) => {
 
     res.status(200).json({
         status: 'success',
-        data: monthlyData,
+        data: {
+            monthlyData: responseMonthlyData,
+        },
     });
 }));
 router.get('/waterusage/monthly/:userid', asyncHandler(async (req, res) => {
@@ -209,7 +209,7 @@ router.get('/waterusage/monthly/:userid', asyncHandler(async (req, res) => {
         throw new NotFoundError(`Water Usage dengan id ${userid} tidak ditemukan`);
     }
 
-    const monthlyData = [];
+    const responseMonthlyData = [];
     waterUsage.forEach((usage) => {
         const date = new Date(usage.tanggal);
 
@@ -217,13 +217,13 @@ router.get('/waterusage/monthly/:userid', asyncHandler(async (req, res) => {
             const year = date.getFullYear();
             const monthName = date.toLocaleString('default', { month: 'long' });
 
-            const existingMonthIndex = monthlyData.findIndex(data => data.bulan === monthName && data.tahun === year);
+            const existingMonthIndex = responseMonthlyData.findIndex(data => data.bulan === monthName && data.tahun === year);
 
             if (existingMonthIndex !== -1) {
-                monthlyData[existingMonthIndex].totalVolume += usage.volume;
-                monthlyData[existingMonthIndex].totalHarga += usage.totalHarga;
+                responseMonthlyData[existingMonthIndex].totalVolume += usage.volume;
+                responseMonthlyData[existingMonthIndex].totalHarga += usage.totalHarga;
             } else {
-                monthlyData.push({
+                responseMonthlyData.push({
                     bulan: monthName,
                     tahun: year,
                     totalVolume: usage.volume,
@@ -237,13 +237,15 @@ router.get('/waterusage/monthly/:userid', asyncHandler(async (req, res) => {
 
     res.status(200).json({
         status: 'success',
-        data: monthlyData,
+        data: {
+            monthlyData: responseMonthlyData,
+        },
     });
 }));
 
 
 router.get('/admin/waterusage/yearly', asyncHandler(async (req, res) => {
-    
+
 
     const waterUsage = await database.select().from('waterusage');
 
@@ -274,7 +276,9 @@ router.get('/admin/waterusage/yearly', asyncHandler(async (req, res) => {
 
     res.status(200).json({
         status: 'success',
-        data: responseYearlyData, 
+        data: {
+            yearlyData: responseYearlyData
+        },
     });
 }));
 router.get('/waterusage/yearly/:userid', asyncHandler(async (req, res) => {
@@ -312,7 +316,9 @@ router.get('/waterusage/yearly/:userid', asyncHandler(async (req, res) => {
 
     res.status(200).json({
         status: 'success',
-        data: responseYearlyData, 
+        data: {
+            yearlyData: responseYearlyData
+        },
     });
 }));
 
