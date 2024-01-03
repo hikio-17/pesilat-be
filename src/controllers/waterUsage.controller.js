@@ -46,7 +46,6 @@ router.get('/waterusage/:id', asyncHandler(async (req, res) => {
 
 router.get('/waterusage/daily/:userid', asyncHandler(async (req, res) => {
     const { userid } = req.params;
-    console.log(userid);
 
     // if (userid !== req.user.id || req.user.role !== 0 || req.user.role !== 1) {
     //     throw new AuthorizationError('Anda tidak berhak mengakses resource ini');
@@ -66,6 +65,54 @@ router.get('/waterusage/daily/:userid', asyncHandler(async (req, res) => {
     });
 }));
 
+router.get('/waterusage/weekly', asyncHandler(async (req, res) => {
+
+    const dailyData = await database('waterusage')
+    .select('tanggal', 'volume', 'totalHarga') // Pilih kolom yang dibutuhkan
+    .orderBy('tanggal');
+
+    function getWeekNumber(date) {
+        const oneJan = new Date(date.getFullYear(), 0, 1);
+        const timeDiff = date - oneJan;
+        const dayOfYear = Math.ceil(timeDiff / (24 * 60 * 60 * 1000));
+        return Math.ceil(dayOfYear / 7);
+    }
+
+    const weeklyData = {};
+    dailyData.forEach(entry => {
+        const entryDate = new Date(entry.tanggal);
+        const weekNumber = getWeekNumber(entryDate);
+        const month = entryDate.toLocaleString('default', { month: 'long' });
+        const year = entryDate.getFullYear();
+
+        const weekIdentifier = `minggu: ${weekNumber} , bulan: ${month}, tahun: ${year}`;
+
+        if (!weeklyData[weekIdentifier]) {
+            weeklyData[weekIdentifier] = {
+                totalVolume: 0,
+                totalHarga: 0,
+            };
+        }
+
+        weeklyData[weekIdentifier].totalVolume += entry.volume;
+        weeklyData[weekIdentifier].totalHarga += entry.totalHarga;
+    });
+
+    const responseWeeklyData = Object.keys(weeklyData).map(weekIdentifier => ({
+        minggu: weekIdentifier,
+        totalVolume: weeklyData[weekIdentifier].totalVolume,
+        totalHarga: weeklyData[weekIdentifier].totalHarga,
+    }));
+
+    res.status(200).json({
+        status: 'success',
+        data: {
+            weeklyData: responseWeeklyData,
+        },
+    });
+}));
+
+
 router.get('/waterusage/weekly/:userid', asyncHandler(async (req, res) => {
     const { userid } = req.params;
 
@@ -78,19 +125,21 @@ router.get('/waterusage/weekly/:userid', asyncHandler(async (req, res) => {
     function getWeekNumber(date) {
         const oneJan = new Date(date.getFullYear(), 0, 1);
         const timeDiff = date - oneJan;
-        const dayOfYear = Math.ceil(timeDiff / 86400000);
-        return Math.ceil(dayOfYear / 7) + 1;
+        const dayOfYear = Math.ceil(timeDiff / (24 * 60 * 60 * 1000));
+        return Math.ceil(dayOfYear / 7);
     }
 
     const weeklyData = {};
     dailyData.forEach(entry => {
-        const entryDate = new Date(parseInt(entry.tanggal));
-        let weekNumber = getWeekNumber(entryDate);
-        weekNumber = weekNumber === 0 ? 1 : weekNumber; 
+        const entryDate = new Date(entry.tanggal);
+        const weekNumber = getWeekNumber(entryDate);
+
         if (!weeklyData[weekNumber]) {
             weeklyData[weekNumber] = {
                 totalVolume: 0,
                 totalHarga: 0,
+                month: entryDate.toLocaleString('default', { month: 'long' }),
+                year: entryDate.getFullYear(),
             };
         }
         weeklyData[weekNumber].totalVolume += entry.volume;
@@ -99,6 +148,8 @@ router.get('/waterusage/weekly/:userid', asyncHandler(async (req, res) => {
 
     const responseWeeklyData = Object.keys(weeklyData).map(weekNumber => ({
         minggu: parseInt(weekNumber),
+        bulan: weeklyData[weekNumber].month,
+        tahun: weeklyData[weekNumber].year,
         totalVolume: weeklyData[weekNumber].totalVolume,
         totalHarga: weeklyData[weekNumber].totalHarga,
     }));
@@ -110,7 +161,6 @@ router.get('/waterusage/weekly/:userid', asyncHandler(async (req, res) => {
         },
     });
 }));
-
 
 router.get('/waterusage/monthly/:userid', asyncHandler(async (req, res) => {
     const { userid } = req.params;
@@ -124,34 +174,40 @@ router.get('/waterusage/monthly/:userid', asyncHandler(async (req, res) => {
         throw new NotFoundError(`Water Usage dengan id ${userid} tidak ditemukan`);
     }
 
-    const monthlyData = {};
+    const monthlyData = [];
     waterUsage.forEach((usage) => {
-        const year = usage.tanggal.getFullYear();
-        const month = usage.tanggal.getMonth() + 1;
-        const monthName = new Date(year, month - 1, 1).toLocaleString('default', { month: 'long' });
-        const key = `${monthName}`;
+        const date = new Date(usage.tanggal);
 
-        if (!monthlyData[key]) {
-            monthlyData[key] = {
-                totalVolume: 0,
-                totalHarga: 0,
-            };
+        if (!isNaN(date.getTime())) {
+            const year = date.getFullYear();
+            const monthName = date.toLocaleString('default', { month: 'long' });
+
+            const existingMonthIndex = monthlyData.findIndex(data => data.bulan === monthName && data.tahun === year);
+
+            if (existingMonthIndex !== -1) {
+                monthlyData[existingMonthIndex].totalVolume += usage.volume;
+                monthlyData[existingMonthIndex].totalHarga += usage.totalHarga;
+            } else {
+                monthlyData.push({
+                    bulan: monthName,
+                    tahun: year,
+                    totalVolume: usage.volume,
+                    totalHarga: usage.totalHarga,
+                });
+            }
+        } else {
+            console.error('Format tanggal tidak valid:', usage.tanggal);
         }
-
-        monthlyData[key].totalVolume += usage.volume;
-        monthlyData[key].totalHarga += usage.totalHarga;
     });
 
     res.status(200).json({
         status: 'success',
-        data: {
-            monthlyData,
-        },
+        data: monthlyData,
     });
 }));
 
 
-router.get('/waterusage/yearly/:userid', authCheck, superAdmin, asyncHandler(async (req, res) => {
+router.get('/waterusage/yearly/:userid', asyncHandler(async (req, res) => {
     const { userid } = req.params;
 
     const waterUsage = await database('waterusage')
@@ -165,7 +221,7 @@ router.get('/waterusage/yearly/:userid', authCheck, superAdmin, asyncHandler(asy
 
     const yearlyData = {};
     waterUsage.forEach((usage) => {
-        const year = usage.tanggal.getFullYear();
+        const year = new Date(usage.tanggal).getFullYear(); 
 
         if (!yearlyData[year]) {
             yearlyData[year] = {
@@ -178,17 +234,23 @@ router.get('/waterusage/yearly/:userid', authCheck, superAdmin, asyncHandler(asy
         yearlyData[year].totalHarga += usage.totalHarga;
     });
 
+    const responseYearlyData = Object.keys(yearlyData).map(year => ({
+        tahun: parseInt(year),
+        totalVolume: yearlyData[year].totalVolume,
+        totalHarga: yearlyData[year].totalHarga,
+    }));
+
     res.status(200).json({
         status: 'success',
-        data: {
-            yearlyData,
-        },
+        data: responseYearlyData, // Kirim array data tahunan
     });
 }));
+
 
 router.post('/waterusage', asyncHandler(async (req, res) => {
 
     const {
+        id,
         username,
         userId,
         volume,
@@ -198,13 +260,16 @@ router.post('/waterusage', asyncHandler(async (req, res) => {
         totalHarga
     } = req.body;
 
-    const timestamp = Date.parse(tanggal);
+    const [year, month, day] = tanggal.split('/');
+    const date = new Date(`${year}-${month}-${day}`);
+    const isoString = date.toISOString();
 
     const waterUsage = await database('waterusage').insert({
+        id,
         username,
         userId,
         volume,
-        tanggal: timestamp,
+        tanggal: isoString,
         waterDepotId,
         waterDepot,
         totalHarga
