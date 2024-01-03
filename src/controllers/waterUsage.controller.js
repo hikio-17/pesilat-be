@@ -274,7 +274,7 @@ router.get('/admin/waterusage/yearly', asyncHandler(async (req, res) => {
 
     res.status(200).json({
         status: 'success',
-        data: responseYearlyData, // Kirim array data tahunan
+        data: responseYearlyData, 
     });
 }));
 router.get('/waterusage/yearly/:userid', asyncHandler(async (req, res) => {
@@ -312,7 +312,7 @@ router.get('/waterusage/yearly/:userid', asyncHandler(async (req, res) => {
 
     res.status(200).json({
         status: 'success',
-        data: responseYearlyData, // Kirim array data tahunan
+        data: responseYearlyData, 
     });
 }));
 
