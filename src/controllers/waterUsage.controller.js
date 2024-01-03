@@ -112,44 +112,7 @@ router.get('/waterusage/weekly/:userid', asyncHandler(async (req, res) => {
 }));
 
 
-
-
-router.get('/waterusage/monthly/:userid', authCheck, superAdmin, asyncHandler(async (req, res) => {
-    const { userid } = req.params;
-
-    const waterUsage = await database('waterusage').where({ userId: userid });
-
-    if (!waterUsage || waterUsage.length === 0) {
-        throw new NotFoundError(`Data waterUsage untuk user dengan id ${userid} tidak ditemukan`);
-    }
-
-    function getMonthNumber(date) {
-        return date.getMonth() + 1;
-    }
-
-    const monthlyData = {};
-    waterUsage.forEach(entry => {
-        const entryDate = new Date(entry.tanggal);
-        const monthNumber = getMonthNumber(entryDate);
-        if (!monthlyData[monthNumber]) {
-            monthlyData[monthNumber] = {
-                totalVolume: 0,
-                data: [],
-            };
-        }
-        monthlyData[monthNumber].data.push(entry);
-        monthlyData[monthNumber].totalVolume += entry.volume;
-    });
-
-    res.status(200).json({
-        status: 'success',
-        data: {
-            monthlyData,
-        },
-    });
-}));
-
-router.get('/waterusage/monthly/:userid', authCheck, superAdmin, asyncHandler(async (req, res) => {
+router.get('/waterusage/monthly/:userid', asyncHandler(async (req, res) => {
     const { userid } = req.params;
 
     const waterUsage = await database('waterusage')
@@ -165,7 +128,8 @@ router.get('/waterusage/monthly/:userid', authCheck, superAdmin, asyncHandler(as
     waterUsage.forEach((usage) => {
         const year = usage.tanggal.getFullYear();
         const month = usage.tanggal.getMonth() + 1;
-        const key = `${year}-${month}`;
+        const monthName = new Date(year, month - 1, 1).toLocaleString('default', { month: 'long' });
+        const key = `${monthName}`;
 
         if (!monthlyData[key]) {
             monthlyData[key] = {
@@ -185,6 +149,7 @@ router.get('/waterusage/monthly/:userid', authCheck, superAdmin, asyncHandler(as
         },
     });
 }));
+
 
 router.get('/waterusage/yearly/:userid', authCheck, superAdmin, asyncHandler(async (req, res) => {
     const { userid } = req.params;
