@@ -15,7 +15,13 @@ exports.authCheck = asyncHandler(async (req, res, next) => {
     throw new AuthenticationError('Token yang anda berikan tidak valid.');
   }
 
-  req.user = user;
+  req.user = {
+    user: {
+      role: user.role,
+      userId: user.id,
+      depotId: user.depotId,
+    }
+  };
   next();
 });
 
