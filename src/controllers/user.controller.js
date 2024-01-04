@@ -41,7 +41,7 @@ router.post('/users', asyncHandler(async (req, res) => {
   const checkAvailabiltyUser = await database('users').where({ ktp: req.body.ktp }).first();
 
   if (checkAvailabiltyUser) {
-    throw new InvariantError(`NIK: ${ktp} sudah terdaftar`);
+    throw new InvariantError(`NIK: ${req.body.ktp} sudah terdaftar`);
   }
 
   const checkAvailabiltyPhone = await database('users').where({ phone: req.body.phone }).first();
@@ -70,14 +70,6 @@ router.post('/users', asyncHandler(async (req, res) => {
 
 router.put('/users/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const {
-    fullName,
-    alamat,
-    password,
-    phone,
-    ktp,
-    role
-  } = req.body;
 
   const existingUser = await database('users').where({ id }).first();
 
@@ -116,22 +108,19 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
   //   },
   //   body: dataToSend,
   // });
+
   let hashedPassword;
-  if (password) {
+  if (req.body.password) {
     try {
-      hashedPassword = await bcrypt.hash(password, 10);
+      hashedPassword = await bcrypt.hash(req.body.password, 10);
     } catch (error) {
       throw new Error('Error hashing password');
     }
   }
 
   await database('users').where({ id }).update({
-    fullName,
-    alamat,
-    password: hashedPassword || existingUser.password,
-    phone,
-    ktp,
-    role
+    ...req.body,
+    password: hashedPassword,
   });
 
   const updatedUser = await database('users').where({ id }).first();
