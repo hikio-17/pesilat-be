@@ -37,35 +37,23 @@ router.get('/users/:id', asyncHandler(async (req, res) => {
 }));
 
 router.post('/users', asyncHandler(async (req, res) => {
-  const {
-    fullName,
-    alamat,
-    password,
-    phone,
-    ktp,
-    role
-  } = req.body;
 
-  const checkAvailabiltyUser = await database('users').where({ ktp }).first();
+  const checkAvailabiltyUser = await database('users').where({ ktp: req.body.ktp }).first();
 
   if (checkAvailabiltyUser) {
     throw new InvariantError(`NIK: ${ktp} sudah terdaftar`);
   }
 
-  const checkAvailabiltyPhone = await database('users').where({ phone }).first();
+  const checkAvailabiltyPhone = await database('users').where({ phone: req.body.phone }).first();
 
   if (checkAvailabiltyPhone) {
-    throw new InvariantError(`Telepon: ${phone} sudah terdaftar`);
+    throw new InvariantError(`Telepon: ${req.body.phone} sudah terdaftar`);
   }
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
   const user = await database('users').insert({
-    fullName,
-    alamat,
+    ...req.body,
     password: hashedPassword,
-    phone,
-    ktp,
-    role
   }).returning('*');
 
   if (!user) {

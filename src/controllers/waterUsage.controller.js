@@ -8,53 +8,35 @@ const { superAdmin, authCheck } = require('../middlewares/auth');
 
 const router = express.Router();
 
-router.get('/waterusage', asyncHandler(async (req, res) => {
-    const waterUsage = await database('waterusage');
+// router.get('/waterusage', authCheck, asyncHandler(async (req, res) => {
+//     const waterUsage = await database('waterusage');
 
-    res.status(200).json({
-        status: 'success',
-        data: {
-            waterUsage,
-        },
-    });
-}));
+//     res.status(200).json({
+//         status: 'success',
+//         data: {
+//             waterUsage,
+//         },
+//     });
+// }));
 
-router.get('/waterusage/:id', asyncHandler(async (req, res) => {
+router.get('/waterusage', authCheck, asyncHandler(async (req, res) => {
 
-    const { id } = req.params;
-    const waterUsage = await database('waterusage').where({ id }).first();
+    let waterUsage;
 
-    if (!waterUsage) {
-        throw new NotFoundError(`Water usage dengan id ${id} tidak ditemukan`);
+    if (req.user.role === 0) {
+        waterUsage = await database('waterusage');
     }
 
-    // if (
-    //     waterUsage.userId !== req.body.id ||
-    //     req.body.role !== 0 ||
-    //     req.body.role !== 1
-    // ) {
-    //     throw new AuthorizationError('Anda tidak berhak mengakses resource ini');
-    // }
+    if (req.user.role === 1) {
+        waterUsage = await database('waterusage').where({ waterDepotId: req.user.depotId });
+    }
 
-    res.status(200).json({
-        status: 'success',
-        data: {
-            waterUsage,
-        },
-    });
-}));
-
-router.get('/waterusage/daily/:userid', asyncHandler(async (req, res) => {
-    const { userid } = req.params;
-
-    // if (userid !== req.user.id || req.user.role !== 0 || req.user.role !== 1) {
-    //     throw new AuthorizationError('Anda tidak berhak mengakses resource ini');
-    // }
-
-    const waterUsage = await database('waterusage').where({ userId: userid });
+    if (req.user.role === 2) {
+        waterUsage = await database('waterusage').where({ userId: req.user.userId });
+    }
 
     if (!waterUsage) {
-        throw new NotFoundError(`Water Usage dengan id ${userid} tidak ditemukan`);
+        throw new NotFoundError(`Water Usage tidak ditemukan`);
     }
 
     res.status(200).json({
@@ -64,10 +46,48 @@ router.get('/waterusage/daily/:userid', asyncHandler(async (req, res) => {
         },
     });
 }));
+
+// router.get('/waterusage/daily/:userid', asyncHandler(async (req, res) => {
+//     const { userid } = req.params;
+
+//     // if (userid !== req.user.id || req.user.role !== 0 || req.user.role !== 1) {
+//     //     throw new AuthorizationError('Anda tidak berhak mengakses resource ini');
+//     // }
+
+//     const waterUsage = await database('waterusage').where({ userId: userid });
+
+//     if (!waterUsage) {
+//         throw new NotFoundError(`Water Usage dengan id ${userid} tidak ditemukan`);
+//     }
+
+//     res.status(200).json({
+//         status: 'success',
+//         data: {
+//             waterUsage,
+//         },
+//     });
+// }));
 
 router.get('/admin/waterusage/weekly', asyncHandler(async (req, res) => {
 
-    const dailyData = await database.select().from('waterusage');
+    let dailyData;
+
+    if (req.user.role === 0) {
+        dailyData = await database('waterusage');
+    }
+
+    if (req.user.role === 1) {
+
+        dailyData = await database('waterusage').where({ waterDepotId: req.user.depotId });
+    }
+
+    if (req.user.role === 2) {
+        dailyData = await database('waterusage').where({ userId: req.user.userId  });
+    }
+
+    if (!waterUsage) {
+        throw new NotFoundError(`Water Usage tidak ditemukan`);
+    }
 
     function getWeekNumber(date) {
         const oneJan = new Date(date.getFullYear(), 0, 1);
@@ -111,102 +131,74 @@ router.get('/admin/waterusage/weekly', asyncHandler(async (req, res) => {
 }));
 
 
-router.get('/waterusage/weekly/:userid', asyncHandler(async (req, res) => {
-    const { userid } = req.params;
+// router.get('/waterusage/weekly/:userid', asyncHandler(async (req, res) => {
+//     const { userid } = req.params;
 
-    const dailyData = await database('waterusage').where({ userId: userid });
+//     const dailyData = await database('waterusage').where({ userId: userid });
 
-    if (!dailyData || dailyData.length === 0) {
-        throw new NotFoundError(`Data harian untuk user dengan id ${userid} tidak ditemukan`);
-    }
+//     if (!dailyData || dailyData.length === 0) {
+//         throw new NotFoundError(`Data harian untuk user dengan id ${userid} tidak ditemukan`);
+//     }
 
-    function getWeekNumber(date) {
-        const oneJan = new Date(date.getFullYear(), 0, 1);
-        const timeDiff = date - oneJan;
-        const dayOfYear = Math.ceil(timeDiff / (24 * 60 * 60 * 1000));
-        return Math.ceil(dayOfYear / 7);
-    }
+//     function getWeekNumber(date) {
+//         const oneJan = new Date(date.getFullYear(), 0, 1);
+//         const timeDiff = date - oneJan;
+//         const dayOfYear = Math.ceil(timeDiff / (24 * 60 * 60 * 1000));
+//         return Math.ceil(dayOfYear / 7);
+//     }
 
-    const weeklyData = {};
-    dailyData.forEach(entry => {
-        const entryDate = new Date(entry.tanggal);
-        const weekNumber = getWeekNumber(entryDate);
+//     const weeklyData = {};
+//     dailyData.forEach(entry => {
+//         const entryDate = new Date(entry.tanggal);
+//         const weekNumber = getWeekNumber(entryDate);
 
-        if (!weeklyData[weekNumber]) {
-            weeklyData[weekNumber] = {
-                totalVolume: 0,
-                totalHarga: 0,
-                month: entryDate.toLocaleString('default', { month: 'long' }),
-                year: entryDate.getFullYear(),
-            };
-        }
-        weeklyData[weekNumber].totalVolume += entry.volume;
-        weeklyData[weekNumber].totalHarga += entry.totalHarga;
-    });
+//         if (!weeklyData[weekNumber]) {
+//             weeklyData[weekNumber] = {
+//                 totalVolume: 0,
+//                 totalHarga: 0,
+//                 month: entryDate.toLocaleString('default', { month: 'long' }),
+//                 year: entryDate.getFullYear(),
+//             };
+//         }
+//         weeklyData[weekNumber].totalVolume += entry.volume;
+//         weeklyData[weekNumber].totalHarga += entry.totalHarga;
+//     });
 
-    const responseWeeklyData = Object.keys(weeklyData).map(weekNumber => ({
-        minggu: parseInt(weekNumber),
-        bulan: weeklyData[weekNumber].month,
-        tahun: weeklyData[weekNumber].year,
-        totalVolume: weeklyData[weekNumber].totalVolume,
-        totalHarga: weeklyData[weekNumber].totalHarga,
-    }));
+//     const responseWeeklyData = Object.keys(weeklyData).map(weekNumber => ({
+//         minggu: parseInt(weekNumber),
+//         bulan: weeklyData[weekNumber].month,
+//         tahun: weeklyData[weekNumber].year,
+//         totalVolume: weeklyData[weekNumber].totalVolume,
+//         totalHarga: weeklyData[weekNumber].totalHarga,
+//     }));
 
-    res.status(200).json({
-        status: 'success',
-        data: {
-            weeklyData: responseWeeklyData,
-        },
-    });
-}));
+//     res.status(200).json({
+//         status: 'success',
+//         data: {
+//             weeklyData: responseWeeklyData,
+//         },
+//     });
+// }));
 
 router.get('/admin/waterusage/monthly', asyncHandler(async (req, res) => {
 
-    const waterUsage = await database.select().from('waterusage');
+    let waterUsage;
 
-    const responseMonthlyData = [];
-    waterUsage.forEach((usage) => {
-        const date = new Date(usage.tanggal);
+    if (req.user.role === 0) {
+        waterUsage = await database('waterusage');
+    }
 
-        if (!isNaN(date.getTime())) {
-            const year = date.getFullYear();
-            const monthName = date.toLocaleString('default', { month: 'long' });
+    if (req.user.role === 1) {
 
-            const existingMonthIndex = responseMonthlyData.findIndex(data => data.bulan === monthName && data.tahun === year);
+        waterUsage = await database('waterusage').where({ waterDepotId: req.user.depotId });
+    }
 
-            if (existingMonthIndex !== -1) {
-                responseMonthlyData[existingMonthIndex].totalVolume += usage.volume;
-                responseMonthlyData[existingMonthIndex].totalHarga += usage.totalHarga;
-            } else {
-                responseMonthlyData.push({
-                    bulan: monthName,
-                    tahun: year,
-                    totalVolume: usage.volume,
-                    totalHarga: usage.totalHarga,
-                });
-            }
-        } else {
-            console.error('Format tanggal tidak valid:', usage.tanggal);
-        }
-    });
+    if (req.user.role === 2) {
+        waterUsage = await database('waterusage').where({ userId: req.user.userId  });
+    }
 
-    res.status(200).json({
-        status: 'success',
-        data: {
-            monthlyData: responseMonthlyData,
-        },
-    });
-}));
-router.get('/waterusage/monthly/:userid', asyncHandler(async (req, res) => {
-    const { userid } = req.params;
-
-    const waterUsage = await database('waterusage')
-        .where({ userId: userid })
-        .select('volume', 'totalHarga', 'tanggal')
-        .orderBy('tanggal');
-
-    if (!waterUsage || waterUsage.length === 0) {
-        throw new NotFoundError(`Water Usage dengan id ${userid} tidak ditemukan`);
+    if (!waterUsage) {
+        throw new NotFoundError(`Water Usage tidak ditemukan`);
     }
 
     const responseMonthlyData = [];
@@ -242,15 +234,72 @@ router.get('/waterusage/monthly/:userid', asyncHandler(async (req, res) => {
         },
     });
 }));
+// router.get('/waterusage/monthly/:userid', asyncHandler(async (req, res) => {
+//     const { userid } = req.params;
+
+//     const waterUsage = await database('waterusage')
+//         .where({ userId: userid })
+//         .select('volume', 'totalHarga', 'tanggal')
+//         .orderBy('tanggal');
+
+//     if (!waterUsage || waterUsage.length === 0) {
+//         throw new NotFoundError(`Water Usage dengan id ${userid} tidak ditemukan`);
+//     }
+
+//     const responseMonthlyData = [];
+//     waterUsage.forEach((usage) => {
+//         const date = new Date(usage.tanggal);
+
+//         if (!isNaN(date.getTime())) {
+//             const year = date.getFullYear();
+//             const monthName = date.toLocaleString('default', { month: 'long' });
+
+//             const existingMonthIndex = responseMonthlyData.findIndex(data => data.bulan === monthName && data.tahun === year);
+
+//             if (existingMonthIndex !== -1) {
+//                 responseMonthlyData[existingMonthIndex].totalVolume += usage.volume;
+//                 responseMonthlyData[existingMonthIndex].totalHarga += usage.totalHarga;
+//             } else {
+//                 responseMonthlyData.push({
+//                     bulan: monthName,
+//                     tahun: year,
+//                     totalVolume: usage.volume,
+//                     totalHarga: usage.totalHarga,
+//                 });
+//             }
+//         } else {
+//             console.error('Format tanggal tidak valid:', usage.tanggal);
+//         }
+//     });
+
+//     res.status(200).json({
+//         status: 'success',
+//         data: {
+//             monthlyData: responseMonthlyData,
+//         },
+//     });
+// }));
 
 
 router.get('/admin/waterusage/yearly', asyncHandler(async (req, res) => {
 
+    let waterUsage;
 
-    const waterUsage = await database.select().from('waterusage');
+    if (req.user.role === 0) {
+        waterUsage = await database('waterusage');
+    }
 
-    if (!waterUsage || waterUsage.length === 0) {
-        throw new NotFoundError(`Water Usage dengan id ${userid} tidak ditemukan`);
+    if (req.user.role === 1) {
+
+        waterUsage = await database('waterusage').where({ waterDepotId: req.user.depotId });
+    }
+
+    if (req.user.role === 2) {
+        waterUsage = await database('waterusage').where({ userId: req.user.userId  });
+    }
+
+    if (!waterUsage) {
+        throw new NotFoundError(`Water Usage tidak ditemukan`);
     }
 
     const yearlyData = {};
@@ -281,46 +330,47 @@ router.get('/admin/waterusage/yearly', asyncHandler(async (req, res) => {
         },
     });
 }));
-router.get('/waterusage/yearly/:userid', asyncHandler(async (req, res) => {
-    const { userid } = req.params;
 
-    const waterUsage = await database('waterusage')
-        .where({ userId: userid })
-        .select('volume', 'totalHarga', 'tanggal')
-        .orderBy('tanggal');
+// router.get('/waterusage/yearly/:userid', asyncHandler(async (req, res) => {
+//     const { userid } = req.params;
 
-    if (!waterUsage || waterUsage.length === 0) {
-        throw new NotFoundError(`Water Usage dengan id ${userid} tidak ditemukan`);
-    }
+//     const waterUsage = await database('waterusage')
+//         .where({ userId: userid })
+//         .select('volume', 'totalHarga', 'tanggal')
+//         .orderBy('tanggal');
 
-    const yearlyData = {};
-    waterUsage.forEach((usage) => {
-        const year = new Date(usage.tanggal).getFullYear();
+//     if (!waterUsage || waterUsage.length === 0) {
+//         throw new NotFoundError(`Water Usage dengan id ${userid} tidak ditemukan`);
+//     }
 
-        if (!yearlyData[year]) {
-            yearlyData[year] = {
-                totalVolume: 0,
-                totalHarga: 0,
-            };
-        }
+//     const yearlyData = {};
+//     waterUsage.forEach((usage) => {
+//         const year = new Date(usage.tanggal).getFullYear();
 
-        yearlyData[year].totalVolume += usage.volume;
-        yearlyData[year].totalHarga += usage.totalHarga;
-    });
+//         if (!yearlyData[year]) {
+//             yearlyData[year] = {
+//                 totalVolume: 0,
+//                 totalHarga: 0,
+//             };
+//         }
 
-    const responseYearlyData = Object.keys(yearlyData).map(year => ({
-        tahun: parseInt(year),
-        totalVolume: yearlyData[year].totalVolume,
-        totalHarga: yearlyData[year].totalHarga,
-    }));
+//         yearlyData[year].totalVolume += usage.volume;
+//         yearlyData[year].totalHarga += usage.totalHarga;
+//     });
 
-    res.status(200).json({
-        status: 'success',
-        data: {
-            yearlyData: responseYearlyData
-        },
-    });
-}));
+//     const responseYearlyData = Object.keys(yearlyData).map(year => ({
+//         tahun: parseInt(year),
+//         totalVolume: yearlyData[year].totalVolume,
+//         totalHarga: yearlyData[year].totalHarga,
+//     }));
+
+//     res.status(200).json({
+//         status: 'success',
+//         data: {
+//             yearlyData: responseYearlyData
+//         },
+//     });
+// }));
 
 
 router.post('/waterusage', asyncHandler(async (req, res) => {
@@ -364,20 +414,20 @@ router.post('/waterusage', asyncHandler(async (req, res) => {
     });
 }));
 
-router.delete('/waterusage/:id', asyncHandler(async (req, res) => {
-    const { id } = req.params;
+router.delete('/waterusage', asyncHandler(async (req, res) => {
+    // const { id } = req.params;
 
-    const waterDepot = await database('waterusage').where({ userId: id }).first();
+    // // const waterDepot = await database('waterusage').where({ id }).first();
 
-    if (!waterDepot) {
-        throw new NotFoundError(`Tidak dapat menghapus data. Water usage dengan id ${id} tidak ditemukan.`);
-    }
+    // if (!waterDepot) {
+    //     throw new NotFoundError(`Tidak dapat menghapus data. Water usage dengan id ${id} tidak ditemukan.`);
+    // }
 
-    await database('waterusage').where({ userId: id }).del();
+    await database('waterusage').del();
 
     res.status(200).json({
         status: 'success',
-        message: `Water usage dengan id ${id} berhasil dihapus`,
+        message: `Water usage berhasil dihapus`,
     });
 }));
 
