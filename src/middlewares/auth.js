@@ -16,11 +16,9 @@ exports.authCheck = asyncHandler(async (req, res, next) => {
   }
 
   req.user = {
-    user: {
       role: user.role,
       userId: user.id,
       depotId: user.depotId,
-    }
   };
   next();
 });
