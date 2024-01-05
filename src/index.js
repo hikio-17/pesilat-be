@@ -12,12 +12,14 @@ const waterDepotsController = require('./controllers/waterDepots.controller');
 const waterUsagesController = require('./controllers/waterUsage.controller');
 const waterPriceController = require('./controllers/waterPrice.controller');
 const { database } = require('./database');
+const sensorDataController = require('./controllers/sensorDatas.controller');
 
 const app = express();
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static('./src/public'));
 
 app.get('/', (req, res) => {
   res.send('ok');
@@ -27,6 +29,7 @@ app.use('/api/v1', authController);
 app.use('/api/v1', waterDepotsController);
 app.use('/api/v1', waterUsagesController);
 app.use('/api/v1', waterPriceController);
+app.use('/api/v1', sensorDataController);
 
 cron.schedule('*/1 * * * * ', async () => {
    const responseAccessToken = await fetch(`${process.env.BASE_URL}/UserApi/authenticate`, {
