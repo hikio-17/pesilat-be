@@ -12,11 +12,19 @@ const router = express.Router();
 
 router.get('/water-depots', asyncHandler(async (req, res) => {
   const waterDepots = await database('waterdepots');
+  const waterUsages = await database('waterusage');
+
+  const dataWaterDepots = waterDepots.map((item) => {
+    return  {
+      ...item,
+      waterUsages: waterUsages.filter((waterUsage) => waterUsage.waterDepotId === item.id),
+    }
+  });
 
   res.status(200).json({
     status: 'success',
     data: {
-      waterDepots,
+      waterDepots: dataWaterDepots,
     },
   });
 }));
