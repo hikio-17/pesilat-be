@@ -45,8 +45,6 @@ cron.schedule('*/1 * * * * ', async () => {
     const responseAccessTokenJson = await responseAccessToken.json();
 
     const { token } = responseAccessTokenJson;
-  console.log('testing');
-  console.log(token);
 });
 
 app.use(errorHandler);
