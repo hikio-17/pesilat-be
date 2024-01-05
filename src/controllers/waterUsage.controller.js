@@ -4,7 +4,7 @@ const ClientError = require('../exeptions/ClientError');
 const NotFoundError = require('../exeptions/NotFoundError');
 const AuthorizationError = require('../exeptions/AuthorizationError');
 const { database } = require('../database');
-const { superAdmin, authCheck } = require('../middlewares/auth');
+const { authCheck } = require('../middlewares/auth');
 
 const router = express.Router();
 
@@ -52,7 +52,7 @@ router.get('/admin/water/usage/weekly', authCheck, asyncHandler(async (req, res)
     }
 
     if (req.user.role === 2) {
-        dailyData = await database('waterusage').where({ userId: req.user.userId  });
+        dailyData = await database('waterusage').where({ userId: req.user.userId });
     }
 
     if (!dailyData) {
@@ -114,7 +114,7 @@ router.get('/admin/water/usage/monthly', authCheck, asyncHandler(async (req, res
     }
 
     if (req.user.role === 2) {
-        waterUsage = await database('waterusage').where({ userId: req.user.userId  });
+        waterUsage = await database('waterusage').where({ userId: req.user.userId });
     }
 
     if (!waterUsage) {
@@ -170,7 +170,7 @@ router.get('/admin/water/usage/yearly', authCheck, asyncHandler(async (req, res)
     }
 
     if (req.user.role === 2) {
-        waterUsage = await database('waterusage').where({ userId: req.user.userId  });
+        waterUsage = await database('waterusage').where({ userId: req.user.userId });
     }
 
     if (!waterUsage) {

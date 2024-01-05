@@ -1,16 +1,55 @@
 const express = require('express');
 const asyncHandler = require('express-async-handler');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const bcrypt = require('bcrypt');
+const { database } = require('../database');
 const NotFoundError = require('../exeptions/NotFoundError');
 const ClientError = require('../exeptions/ClientError');
-const { database } = require('../database');
-const bcrypt = require('bcrypt');
-const { adminDepot, superAdmin, authCheck } = require('../middlewares/auth');
 const InvariantError = require('../exeptions/InvariantError');
+const { authCheck } = require('../middlewares/auth');
 
 const router = express.Router();
 
-router.get('/users', asyncHandler(async (req, res) => {
-  const users = await database('users');
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'src/public');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({
+  storage: storage,
+  fileFilter: function (req, file, cb) {
+    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+      return cb(new ClientError('Hanya gambar dengan format jpg, jpeg, png, dan gif yang diizinkan!'));
+    }
+    cb(null, true);
+  }
+});
+
+router.get('/users', authCheck, asyncHandler(async (req, res) => {
+
+  let users;
+
+  if (req.user.role === 0) {
+    users = await database('users');
+  }
+
+  if (req.user.role === 1) {
+    users = await database('users').where({ depotId: req.user.depotId });
+  }
+
+  if (req.user.role === 2) {
+    users = await database('users').where({ id: req.user.userId });
+  }
+
+  if (!users) {
+    throw new NotFoundError(`User tidak ditemukan`);
+  }
 
   res.status(200).json({
     status: 'success',
@@ -36,7 +75,7 @@ router.get('/users/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-router.post('/users', asyncHandler(async (req, res) => {
+router.post('/users', upload.single('image'), asyncHandler(async (req, res) => {
 
   const checkAvailabiltyUser = await database('users').where({ ktp: req.body.ktp }).first();
 
@@ -49,11 +88,21 @@ router.post('/users', asyncHandler(async (req, res) => {
   if (checkAvailabiltyPhone) {
     throw new InvariantError(`Telepon: ${req.body.phone} sudah terdaftar`);
   }
+
+  let imageFileName;
+
+  if (req.file) {
+    imageFileName = req.file.filename;
+  }
+
+  const completeImageUrl = imageFileName ? `${req.protocol}://${req.get('host')}/${imageFileName}` : null;
+
   const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
   const user = await database('users').insert({
     ...req.body,
     password: hashedPassword,
+    picUrl: completeImageUrl,
   }).returning('*');
 
   if (!user) {
@@ -68,7 +117,7 @@ router.post('/users', asyncHandler(async (req, res) => {
   });
 }));
 
-router.put('/users/:id', asyncHandler(async (req, res) => {
+router.put('/users/:id', upload.single('image'), asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const existingUser = await database('users').where({ id }).first();
@@ -118,9 +167,26 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
     }
   }
 
+  let imageFileName;
+
+  if (existingUser.picUrl) {
+    const fileName = existingUser.picUrl.split('/').pop();
+    fs.unlink(`src/public/${fileName}`, (err) => {
+      if (err) {
+        console.error('Gagal menghapus foto lama:', err);
+      } else {
+        console.log('Foto lama berhasil dihapus:', fileName);
+      }
+    });
+    imageFileName = req.file.filename;
+  }
+
+  const completeImageUrl = imageFileName ? `${req.protocol}://${req.get('host')}/${imageFileName}` : existingUser.picUrl;
+
   await database('users').where({ id }).update({
     ...req.body,
     password: hashedPassword,
+    picUrl: completeImageUrl,
   });
 
   const updatedUser = await database('users').where({ id }).first();
@@ -140,6 +206,18 @@ router.delete('/users/:id', asyncHandler(async (req, res) => {
   if (!user) {
     throw new NotFoundError('User tidak ditemukan');
   }
+
+  if (user.picUrl) {
+    const fileName = user.picUrl.split('/').pop();
+    fs.unlink(`src/public/${fileName}`, (err) => {
+      if (err) {
+        console.error('Gagal menghapus foto lama:', err);
+      } else {
+        console.log('Foto lama berhasil dihapus:', fileName);
+      }
+    });
+  }
+
 
   // await axios.post('https://waterpositive.my.id/api/UserProfile/DeleteData', { id });
 
