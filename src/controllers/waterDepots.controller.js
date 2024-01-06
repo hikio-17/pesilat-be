@@ -1,102 +1,186 @@
-const asyncHandler = require('express-async-handler');
+const asyncHandler = require('express-async-handler')
 
-const express = require('express');
-const { database } = require('../database');
-const ClientError = require('../exeptions/ClientError');
-const NotFoundError = require('../exeptions/NotFoundError');
-const { validateWaterDepotData } = require('../validators/waterDepotValidate');
-const { validateWaterDepotUpdateData } = require('../validators/waterDepotUpdateValidate');
-const { superAdmin, authCheck } = require('../middlewares/auth');
+const express = require('express')
+const { database } = require('../database')
+const ClientError = require('../exeptions/ClientError')
+const NotFoundError = require('../exeptions/NotFoundError')
+const { validateWaterDepotData } = require('../validators/waterDepotValidate')
+const {
+  validateWaterDepotUpdateData
+} = require('../validators/waterDepotUpdateValidate')
+const { superAdmin, authCheck } = require('../middlewares/auth')
 
-const router = express.Router();
+const router = express.Router()
 
-router.get('/water-depots', asyncHandler(async (req, res) => {
-  const waterDepots = await database('waterdepots');
-  const waterUsages = await database('waterusage');
+router.get(
+  '/water-depots',
+  asyncHandler(async (req, res) => {
+    const responseAccessToken = await fetch(
+      `${process.env.BASE_URL}/UserApi/authenticate`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          apiKey: '123qweasd'
+        })
+      }
+    )
 
-  const dataWaterDepots = waterDepots.map((item) => {
-    return  {
-      ...item,
-      waterUsages: waterUsages.filter((waterUsage) => waterUsage.waterDepotId === item.id),
+    const responseAccessTokenJson = await responseAccessToken.json()
+
+    const { token } = responseAccessTokenJson
+
+    const waterDepotsResponse = await fetch(
+      'https://waterpositive.my.id/api/WaterDepot/GetAllData',
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+    const waterDepotsJson = await waterDepotsResponse.json();
+
+    const waterUsageResponse = await fetch(
+      'https://waterpositive.my.id/api/WaterUsage/GetAllData',
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+
+    const waterUsageJson = await waterUsageResponse.json();
+
+    const waterDepotData = waterDepotsJson.map((item) => {
+      return {
+        ...item,
+        waterUsages: waterUsageJson.filter((i) => i.waterDepotId === item.id),
+      }
+    })
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        waterDepots: waterDepotData,
+      }
+    })
+    // const waterDepots = await database('waterdepots');
+    // const waterUsages = await database('waterusage');
+
+    // const dataWaterDepots = waterDepots.map((item) => {
+    //   return  {
+    //     ...item,
+    //     waterUsages: waterUsages.filter((waterUsage) => waterUsage.waterDepotId === item.id),
+    //   }
+    // });
+
+    // res.status(200).json({
+    //   status: 'success',
+    //   data: {
+    //     waterDepots: dataWaterDepots,
+    //   },
+    // });
+  })
+)
+
+router.get(
+  '/water-depots/:id',
+  asyncHandler(async (req, res) => {
+    const { id } = req.params
+    const waterDepot = await database('waterdepots').where({ id }).first()
+
+    if (!waterDepot) {
+      throw new NotFoundError(`Water Depot dengan id ${id} tidak ditemukan`)
     }
-  });
 
-  res.status(200).json({
-    status: 'success',
-    data: {
-      waterDepots: dataWaterDepots,
-    },
-  });
-}));
+    res.status(200).json({
+      status: 'success',
+      data: {
+        waterDepot
+      }
+    })
+  })
+)
 
-router.get('/water-depots/:id', asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const waterDepot = await database('waterdepots').where({ id }).first();
+router.post(
+  '/water-depots',
+  validateWaterDepotData,
+  authCheck,
+  superAdmin,
+  asyncHandler(async (req, res) => {
+    const waterDepot = await database('waterdepots')
+      .insert(req.body)
+      .returning('*')
 
-  if (!waterDepot) {
-    throw new NotFoundError(`Water Depot dengan id ${id} tidak ditemukan`);
-  }
+    if (!waterDepot) {
+      throw new ClientError('Water Depots gagal dibuat. silahkan ulangi')
+    }
 
-  res.status(200).json({
-    status: 'success',
-    data: {
-      waterDepot,
-    },
-  });
-}));
+    res.status(201).json({
+      status: 'success',
+      message: 'Water depot berhasil dibuat',
+      data: {
+        waterDepot
+      }
+    })
+  })
+)
 
-router.post('/water-depots', validateWaterDepotData, authCheck, superAdmin, asyncHandler(async (req, res) => {
-  const waterDepot = await database('waterdepots').insert(req.body).returning('*');
+router.put(
+  '/water-depots/:id',
+  validateWaterDepotUpdateData,
+  authCheck,
+  superAdmin,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params
+    const waterDepot = await database('waterdepots').where({ id }).first()
 
-  if (!waterDepot) {
-    throw new ClientError('Water Depots gagal dibuat. silahkan ulangi');
-  }
+    if (!waterDepot) {
+      throw new NotFoundError(
+        `Tidak dapat memperbarui data. Water depot dengan id ${id} tidak ditemukan.`
+      )
+    }
 
-  res.status(201).json({
-    status: 'success',
-    message: 'Water depot berhasil dibuat',
-    data: {
-      waterDepot,
-    },
-  });
-}));
+    const updatedData = {
+      ...waterDepot,
+      ...req.body
+    }
 
-router.put('/water-depots/:id', validateWaterDepotUpdateData, authCheck, superAdmin, asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const waterDepot = await database('waterdepots').where({ id }).first();
+    await database('waterdepots').where({ id }).update(updatedData)
 
-  if (!waterDepot) {
-    throw new NotFoundError(`Tidak dapat memperbarui data. Water depot dengan id ${id} tidak ditemukan.`);
-  }
+    res.status(200).json({
+      status: 'success',
+      message: `Water depot dengan id ${id} berhasil diperbarui`
+    })
+  })
+)
 
-  const updatedData = {
-    ...waterDepot,
-    ...req.body,
-  };
+router.delete(
+  '/water-depots/:id',
+  authCheck,
+  superAdmin,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params
 
-  await database('waterdepots').where({ id }).update(updatedData);
+    const waterDepot = await database('waterdepots').where({ id }).first()
 
-  res.status(200).json({
-    status: 'success',
-    message: `Water depot dengan id ${id} berhasil diperbarui`,
-  });
-}));
+    if (!waterDepot) {
+      throw new NotFoundError(
+        `Tidak dapat menghapus data. Water depot dengan id ${id} tidak ditemukan.`
+      )
+    }
 
-router.delete('/water-depots/:id', authCheck, superAdmin, asyncHandler(async (req, res) => {
-  const { id } = req.params;
+    await database('waterdepots').where({ id }).del()
 
-  const waterDepot = await database('waterdepots').where({ id }).first();
+    res.status(200).json({
+      status: 'success',
+      message: `Water depot dengan id ${id} berhasil dihapus`
+    })
+  })
+)
 
-  if (!waterDepot) {
-    throw new NotFoundError(`Tidak dapat menghapus data. Water depot dengan id ${id} tidak ditemukan.`);
-  }
-
-  await database('waterdepots').where({ id }).del();
-
-  res.status(200).json({
-    status: 'success',
-    message: `Water depot dengan id ${id} berhasil dihapus`,
-  });
-}));
-
-module.exports = router;
+module.exports = router
