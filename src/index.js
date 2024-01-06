@@ -5,6 +5,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const cron = require('node-cron')
 const cors = require('cors')
+const morgan = require('morgan');
 const { errorHandler } = require('./middlewares/errorHandler')
 const userController = require('./controllers/user.controller')
 const authController = require('./controllers/auth.controller')
@@ -16,10 +17,11 @@ const sensorDataController = require('./controllers/sensorDatas.controller')
 
 const app = express()
 
-app.use(cors())
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: true }))
-app.use(express.static('./src/public'))
+app.use(cors());
+app.use(morgan('combined'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static('./src/public'));
 
 app.get('/', (req, res) => {
   res.send('ok')
@@ -31,7 +33,7 @@ app.use('/api/v1', waterUsagesController)
 app.use('/api/v1', waterPriceController)
 app.use('/api/v1', sensorDataController)
 
-cron.schedule('*/30 * * * * * ', async () => {
+cron.schedule('* * */3 * * * ', async () => {
   try {
     console.log('updated data')
     const responseAccessToken = await fetch(
@@ -51,8 +53,8 @@ cron.schedule('*/30 * * * * * ', async () => {
 
     const { token } = responseAccessTokenJson
 
-    const waterPriceResponse = await fetch(
-      'https://waterpositive.my.id/api/WaterPrice/GetAllData',
+    const waterUsageResponse = await fetch(
+      'https://waterpositive.my.id/api/WaterUsage/GetAllData',
       {
         method: 'GET',
         headers: {
@@ -60,10 +62,10 @@ cron.schedule('*/30 * * * * * ', async () => {
         }
       }
     )
-    const waterPriceJson = await waterPriceResponse.json()
+    const waterUsageJson = await waterUsageResponse.json();
 
-    await database('waterprice').truncate()
-    await database('waterprice').insert(waterPriceJson)
+    await database('waterusage').truncate()
+    await database('waterusage').insert(waterUsageJson);
 
     console.log('sinkronisasi data berhasil')
   } catch (error) {
