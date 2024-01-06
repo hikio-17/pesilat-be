@@ -16,7 +16,7 @@ router.get(
   '/water-depots',
   asyncHandler(async (req, res) => {
     const responseAccessToken = await fetch(
-      `${process.env.BASE_URL}/UserApi/authenticate`,
+      'https://waterpositive.my.id/UserApi/authenticate',
       {
         method: 'POST',
         headers: {

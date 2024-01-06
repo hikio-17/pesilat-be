@@ -31,8 +31,44 @@ app.use('/api/v1', waterUsagesController)
 app.use('/api/v1', waterPriceController)
 app.use('/api/v1', sensorDataController)
 
-cron.schedule('* */3 * * * ', async () => {
+cron.schedule('*/30 * * * * * ', async () => {
+  try {
     console.log('updated data')
+    const responseAccessToken = await fetch(
+      `${process.env.BASE_URL}/UserApi/authenticate`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          apiKey: '123qweasd'
+        })
+      }
+    )
+
+    const responseAccessTokenJson = await responseAccessToken.json()
+
+    const { token } = responseAccessTokenJson
+
+    const waterPriceResponse = await fetch(
+      'https://waterpositive.my.id/api/WaterPrice/GetAllData',
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+    const waterPriceJson = await waterPriceResponse.json()
+
+    await database('waterprice').truncate()
+    await database('waterprice').insert(waterPriceJson)
+
+    console.log('sinkronisasi data berhasil')
+  } catch (error) {
+    console.log(error)
+  }
 })
 
 app.use('/api/v1/seeders', async (req, res) => {
@@ -46,7 +82,7 @@ app.use('/api/v1/seeders', async (req, res) => {
     longitude: '106.816666',
     waterUsages: [],
     updatedDate: '2023-12-31T04:18:54.057Z',
-    syncDate: '2023-12-31T04:18:54.057Z',
+    syncDate: '2023-12-31T04:18:54.057Z'
   })
 
   res.status(200).json('ok')
