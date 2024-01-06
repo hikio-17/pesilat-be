@@ -33,7 +33,7 @@ router.get('/sensor/data', authCheck, asyncHandler(async (req, res) => {
 }));
 
 
-router.get('/sensor/data/latest-average', superAdmin, asyncHandler(async (req, res) => {
+router.get('/sensor/data/latest-average', authCheck, superAdmin, asyncHandler(async (req, res) => {
 
     const latestDateResult = await database('sensordatas')
         .max('tanggal as latest_date');
@@ -45,12 +45,10 @@ router.get('/sensor/data/latest-average', superAdmin, asyncHandler(async (req, r
         .select(
             database.raw('AVG(temperature) as avg_temperature'),
             database.raw('AVG(tds) as avg_tds'),
-            database.raw('AVG(do) as avg_do'),
+            database.raw('AVG("do") as avg_do'),
             database.raw('AVG(ph) as avg_ph'),
             database.raw('AVG(pressure) as avg_pressure'),
-            database.raw('AVG(waterLevel) as avg_waterLevel'),
-            database.raw('AVG(deviceId) as avg_deviceId'),
-            database.raw('AVG(waterDepotId) as avg_waterDepotId')
+            database.raw('AVG("waterLevel") as avg_waterLevel')
         );
 
     if (!sensorDataLatest || sensorDataLatest.length === 0) {
