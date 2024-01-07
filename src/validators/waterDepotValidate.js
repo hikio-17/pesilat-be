@@ -7,7 +7,7 @@ exports.validateWaterDepotData = [
     .notEmpty().withMessage('Nama Water Depot tidak boleh kosong.')
     .isString()
     .withMessage('Nama Water Depot harus berupa string'),
-  body('tanggalpasang')
+  body('tanggalPasang')
     .notEmpty().withMessage('Tanggal Pasang tidak boleh kosong.')
     .isString()
     .withMessage('Tanggal Pasang harus berupa string'),
