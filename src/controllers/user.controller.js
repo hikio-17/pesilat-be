@@ -90,10 +90,10 @@ router.post('/users', upload.single('image'), asyncHandler(async (req, res) => {
   }
 
   let imageFileName;
-
+  
   if (req.file) {
     imageFileName = req.file.filename;
-  }
+  } 
 
   const completeImageUrl = imageFileName ? `${req.protocol}://${req.get('host')}/${imageFileName}` : null;
 
@@ -182,7 +182,7 @@ router.put('/users/:id', upload.single('image'), asyncHandler(async (req, res) =
   }
 
   const completeImageUrl = imageFileName ? `${req.protocol}://${req.get('host')}/${imageFileName}` : existingUser.picUrl;
-
+  console.log(completeImageUrl);
   await database('users').where({ id }).update({
     ...req.body,
     password: hashedPassword,
@@ -209,6 +209,7 @@ router.delete('/users/:id', asyncHandler(async (req, res) => {
 
   if (user.picUrl) {
     const fileName = user.picUrl.split('/').pop();
+    console.log(fileName);
     fs.unlink(`src/public/${fileName}`, (err) => {
       if (err) {
         console.error('Gagal menghapus foto lama:', err);
