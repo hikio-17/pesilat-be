@@ -90,10 +90,10 @@ router.post('/users', upload.single('image'), asyncHandler(async (req, res) => {
   }
 
   let imageFileName;
-  
+
   if (req.file) {
     imageFileName = req.file.filename;
-  } 
+  }
 
   const completeImageUrl = imageFileName ? `${req.protocol}://${req.get('host')}/${imageFileName}` : null;
 
@@ -171,18 +171,32 @@ router.put('/users/:id', upload.single('image'), asyncHandler(async (req, res) =
 
   if (existingUser.picUrl) {
     const fileName = existingUser.picUrl.split('/').pop();
-    fs.unlink(`src/public/${fileName}`, (err) => {
-      if (err) {
-        console.error('Gagal menghapus foto lama:', err);
-      } else {
-        console.log('Foto lama berhasil dihapus:', fileName);
-      }
-    });
-    imageFileName = req.file.filename;
+    const imagePath = `src/public/${fileName}`;
+
+    const deleteImage = () => {
+      return new Promise((resolve, reject) => {
+        fs.unlink(imagePath, (err) => {
+          if (err) {
+            console.error('Gagal menghapus foto lama:', err);
+            reject(err);
+          } else {
+            console.log('Foto lama berhasil dihapus:', fileName);
+            resolve();
+          }
+        });
+      });
+    };
+
+    try {
+      await deleteImage();
+      imageFileName = req.file.filename;
+    } catch (error) {
+      throw new Error('Gagal menghapus foto lama');
+    }
   }
 
   const completeImageUrl = imageFileName ? `${req.protocol}://${req.get('host')}/${imageFileName}` : existingUser.picUrl;
-  console.log(completeImageUrl);
+
   await database('users').where({ id }).update({
     ...req.body,
     password: hashedPassword,
@@ -209,7 +223,6 @@ router.delete('/users/:id', asyncHandler(async (req, res) => {
 
   if (user.picUrl) {
     const fileName = user.picUrl.split('/').pop();
-    console.log(fileName);
     fs.unlink(`src/public/${fileName}`, (err) => {
       if (err) {
         console.error('Gagal menghapus foto lama:', err);
