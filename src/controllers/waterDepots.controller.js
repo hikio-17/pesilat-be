@@ -75,19 +75,52 @@ router.get(
   '/water-depots/:id',
   asyncHandler(async (req, res) => {
     const { id } = req.params
-    const waterDepot = await database('waterdepots').where({ id }).first()
+    const waterDepot = await database('waterdepots').where({ id }).first();
 
     if (!waterDepot) {
       throw new NotFoundError(`Water Depot dengan id ${id} tidak ditemukan`)
     }
 
+    // Get Data Water Usage
+    const responseAccessToken = await fetch(
+      'https://waterpositive.my.id/UserApi/authenticate',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          apiKey: '123qweasd'
+        })
+      }
+    )
+
+    const responseAccessTokenJson = await responseAccessToken.json()
+
+    const { token } = responseAccessTokenJson;
+
+    const waterUsageResponse = await fetch(
+      'https://waterpositive.my.id/api/WaterUsage/GetAllData',
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+
+    const waterUsageJson = await waterUsageResponse.json();
+
     res.status(200).json({
       status: 'success',
       data: {
-        waterDepot
+        waterDepot: {
+          ...waterDepot,
+          waterUsages: waterUsageJson.filter((item) => item.waterDepotId == id),
+        }
       }
-    })
-  })
+    });
+  }),
 )
 
 router.post(

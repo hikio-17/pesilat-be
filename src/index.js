@@ -33,7 +33,7 @@ app.use('/api/v1', waterUsagesController)
 app.use('/api/v1', waterPriceController)
 app.use('/api/v1', sensorDataController)
 
-cron.schedule('* * */3 * * * ', async () => {
+cron.schedule('0 */3 * * *', async () => {
   try {
     console.log('updated data')
     const responseAccessToken = await fetch(
