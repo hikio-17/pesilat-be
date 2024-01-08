@@ -1,6 +1,5 @@
 const express = require('express');
 const asyncHandler = require('express-async-handler');
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
@@ -12,24 +11,24 @@ const { authCheck } = require('../middlewares/auth');
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'src/public');
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, 'src/public');
+//   },
+//   filename: function (req, file, cb) {
+//     cb(null, Date.now() + path.extname(file.originalname));
+//   },
+// });
 
-const upload = multer({
-  storage: storage,
-  fileFilter: function (req, file, cb) {
-    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
-      return cb(new ClientError('Hanya gambar dengan format jpg, jpeg, png, dan gif yang diizinkan!'));
-    }
-    cb(null, true);
-  }
-});
+// const upload = multer({
+//   storage: storage,
+//   fileFilter: function (req, file, cb) {
+//     if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+//       return cb(new ClientError('Hanya gambar dengan format jpg, jpeg, png, dan gif yang diizinkan!'));
+//     }
+//     cb(null, true);
+//   }
+// });
 
 router.get('/users', authCheck, asyncHandler(async (req, res) => {
 
@@ -75,7 +74,7 @@ router.get('/users/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-router.post('/users', upload.single('image'), asyncHandler(async (req, res) => {
+router.post('/users', asyncHandler(async (req, res) => {
 
   const checkAvailabiltyUser = await database('users').where({ ktp: req.body.ktp }).first();
 
@@ -89,20 +88,60 @@ router.post('/users', upload.single('image'), asyncHandler(async (req, res) => {
     throw new InvariantError(`Telepon: ${req.body.phone} sudah terdaftar`);
   }
 
+  const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
   let imageFileName;
 
-  if (req.file) {
-    imageFileName = req.file.filename;
+  if (req.files) {
+    const file = req.files.image;
+    const fileSize = file.data.length;
+    const ext = path.extname(file.name);
+    const fileName = `${Date.now()}${ext}`;
+    imageFileName = `${req.protocol}://${req.get("host")}/${fileName}`;
+    const allowedType = [".png", ".jpg", ".jpeg"];
+
+    if (!allowedType.includes(ext.toLowerCase()))
+      return res.status(422).json({ msg: "Format gambar yang di izinkan .png .jpg .jpeg" });
+    if (fileSize > 5000000)
+      return res.status(422).json({ msg: "Ukuran gambar tidak lebih dari 5 MB" });
+
+    file.mv(`./src/public/${fileName}`, (err) => {
+      if (err) return res.status(500).json({ msg: err.message });
+    });
   }
 
-  const completeImageUrl = imageFileName ? `${req.protocol}://${req.get('host')}/${imageFileName}` : null;
 
-  const hashedPassword = await bcrypt.hash(req.body.password, 10);
+  // const responseAccessToken = await fetch(`${process.env.BASE_URL}/UserApi/authenticate`, {
+  //   method: 'POST',
+  //   headers: {
+  //     'Content-Type': 'application/json',
+  //   },
+  //   body: JSON.stringify({
+  //     apiKey: '123qweasd',
+  //   }),
+  // });
+
+  // const responseAccessTokenJson = await responseAccessToken.json();
+
+  // const { token } = responseAccessTokenJson;
+
+  // const body = {
+  //   ...req.body,
+  //   password: hashedPassword,
+  //   picUrl: completeImageUrl,
+  // }
+  // const response = await fetch(`${process.env.BASE_URL}/api/UserProfile/InsertData`, {
+  //   method: 'POST',
+  //   headers: {
+  //     Authorization: `Bearer ${token}`,
+  //   },
+  //   body: JSON.stringify(body),
+  // });
 
   const user = await database('users').insert({
     ...req.body,
     password: hashedPassword,
-    picUrl: completeImageUrl,
+    picUrl: imageFileName,
   }).returning('*');
 
   if (!user) {
@@ -117,7 +156,7 @@ router.post('/users', upload.single('image'), asyncHandler(async (req, res) => {
   });
 }));
 
-router.put('/users/:id', upload.single('image'), asyncHandler(async (req, res) => {
+router.put('/users/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const existingUser = await database('users').where({ id }).first();
@@ -167,40 +206,38 @@ router.put('/users/:id', upload.single('image'), asyncHandler(async (req, res) =
     }
   }
 
-  let imageFileName;
+  let fileName;
+  if (req.files === null) {
+    imageFileName = existingUser.picUrl;
+  } else {
+    const file = req.files.image;
+    const fileSize = file.data.length;
+    const ext = path.extname(file.name);
+    fileName = `${Date.now()}${ext}`;
+    const allowedType = [".png", ".jpg", ".jpeg"];
 
-  if (existingUser.picUrl) {
-    const fileName = existingUser.picUrl.split('/').pop();
-    const imagePath = `src/public/${fileName}`;
+    if (!allowedType.includes(ext.toLowerCase()))
+      return res.status(422).json({ msg: "Format gambar yang di izinkan .png .jpg .jpeg" });
+    if (fileSize > 5000000)
+      return res.status(422).json({ msg: "Ukuran gambar tidak lebih dari 5 MB" });
 
-    const deleteImage = () => {
-      return new Promise((resolve, reject) => {
-        fs.unlink(imagePath, (err) => {
-          if (err) {
-            console.error('Gagal menghapus foto lama:', err);
-            reject(err);
-          } else {
-            console.log('Foto lama berhasil dihapus:', fileName);
-            resolve();
-          }
-        });
-      });
-    };
-
-    try {
-      await deleteImage();
-      imageFileName = req.file.filename;
-    } catch (error) {
-      throw new Error('Gagal menghapus foto lama');
+    if (existingUser.picUrl) {
+      const fileNameImage = existingUser.picUrl.split('/').pop();
+      const filepath = `./src/public/${fileNameImage}`;
+      fs.unlinkSync(filepath);
     }
+
+    file.mv(`./src/public/${fileName}`, (err) => {
+      if (err) return res.status(500).json({ msg: err.message });
+    });
   }
 
-  const completeImageUrl = imageFileName ? `${req.protocol}://${req.get('host')}/${imageFileName}` : existingUser.picUrl;
+  const imageFileName = `${req.protocol}://${req.get("host")}/${fileName}`;
 
   await database('users').where({ id }).update({
     ...req.body,
     password: hashedPassword,
-    picUrl: completeImageUrl,
+    picUrl: imageFileName,
   });
 
   const updatedUser = await database('users').where({ id }).first();
@@ -227,7 +264,7 @@ router.delete('/users/:id', asyncHandler(async (req, res) => {
       if (err) {
         console.error('Gagal menghapus foto lama:', err);
       } else {
-        console.log('Foto lama berhasil dihapus:', fileName);
+        console.log('Foto lama berhasil dihapus');
       }
     });
   }
