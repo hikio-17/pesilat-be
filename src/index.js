@@ -35,20 +35,20 @@ app.use('/api/v1', waterPriceController)
 app.use('/api/v1', sensorDataController)
 
 cron.schedule('0 * */3 * * *', async () => {
-  try {
-    const time = new Date();
-    console.log('Memulai Sinkronisasi data', `${time.getHours()} : ${time.getMinutes()} : ${time.getSeconds()}`)
+  // try {
+  //   const time = new Date();
+  //   console.log('Memulai Sinkronisasi data', `${time.getHours()} : ${time.getMinutes()} : ${time.getSeconds()}`)
    
-    const waterUsage = await api.getWaterUsages();
+  //   const waterUsage = await api.getWaterUsages();
     
-    if (waterUsage.length > 0) {
-      await database('waterusage').truncate()
-      await database('waterusage').insert(waterUsage);
-      console.log('Sinkronisasi Data berhasil', `${time.getHours()} : ${time.getMinutes()} : ${time.getSeconds()}`)
-    }
-  } catch (error) {
-    console.log(error)
-  }
+  //   if (waterUsage.length > 0) {
+  //     await database('waterusage').truncate()
+  //     await database('waterusage').insert(waterUsage);
+  //     console.log('Sinkronisasi Data berhasil', `${time.getHours()} : ${time.getMinutes()} : ${time.getSeconds()}`)
+  //   }
+  // } catch (error) {
+  //   console.log(error)
+  // }
 })
 
 app.use('/api/v1/seeders', async (req, res) => {
