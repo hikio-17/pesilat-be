@@ -109,14 +109,17 @@ router.get(
       }
     )
 
-    const waterUsageJson = await waterUsageResponse.json();
+    // const waterUsageJson = await waterUsageResponse.json();
+
+    const waterUsageJson = await database('waterusage').where({ waterDepotId: id });
 
     res.status(200).json({
       status: 'success',
       data: {
         waterDepot: {
           ...waterDepot,
-          waterUsages: waterUsageJson.filter((item) => item.waterDepotId == id),
+          // waterUsages: waterUsageJson.filter((item) => item.waterDepotId == id),
+          waterUsages: waterUsageJson
         }
       }
     });

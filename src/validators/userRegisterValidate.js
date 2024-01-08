@@ -7,8 +7,12 @@ exports.validateUserRegister = [
     .notEmpty().withMessage('Nama lengkap tidak boleh kosong.')
     .isString()
     .withMessage('Nama lengkap harus berupa string'),
+  body('email')
+    .notEmpty().withMessage('Email tidak boleh kosong.')
+    .isString()
+    .withMessage('Email harus berupa string'),
   body('ktp')
-    .notEmpty().withMessage('NIK tidak boleh kosong.')
+    .notEmpty().withMessage('Email tidak boleh kosong.')
     .isString()
     .withMessage('NIK harus berupa string'),
   body('password')
