@@ -3,6 +3,7 @@
 require('dotenv').config()
 const express = require('express')
 const bodyParser = require('body-parser')
+const FileUpload = require("express-fileupload");
 const cron = require('node-cron')
 const cors = require('cors')
 const morgan = require('morgan');
@@ -22,6 +23,7 @@ app.use(cors());
 app.use(morgan('combined'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(FileUpload());
 app.use(express.static('./src/public'));
 
 app.get('/', (req, res) => {
