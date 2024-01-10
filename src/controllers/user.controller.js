@@ -8,6 +8,7 @@ const NotFoundError = require('../exeptions/NotFoundError');
 const ClientError = require('../exeptions/ClientError');
 const InvariantError = require('../exeptions/InvariantError');
 const { authCheck } = require('../middlewares/auth');
+const { getAllUsers } = require('../utils/api');
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ const router = express.Router();
 // });
 
 router.get('/users', authCheck, asyncHandler(async (req, res) => {
-
+  
   let users;
 
   if (req.user.role === 0) {

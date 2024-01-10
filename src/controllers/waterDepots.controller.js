@@ -9,56 +9,24 @@ const {
   validateWaterDepotUpdateData
 } = require('../validators/waterDepotUpdateValidate')
 const { superAdmin, authCheck } = require('../middlewares/auth')
+const { syncronizeWaterDepots, syncronizeWaterUsages } = require('../utils/api')
 
 const router = express.Router()
 
 router.get(
   '/water-depots',
   asyncHandler(async (req, res) => {
-    const responseAccessToken = await fetch(
-      'https://waterpositive.my.id/UserApi/authenticate',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          apiKey: '123qweasd'
-        })
-      }
-    )
+    // Sinkronize
+    await syncronizeWaterDepots();
+    await syncronizeWaterUsages();
 
-    const responseAccessTokenJson = await responseAccessToken.json()
+    const waterDepots = await database('waterdepots');
+    const waterUsages = await database('waterusage');
 
-    const { token } = responseAccessTokenJson
-
-    const waterDepotsResponse = await fetch(
-      'https://waterpositive.my.id/api/WaterDepot/GetAllData',
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    )
-    const waterDepotsJson = await waterDepotsResponse.json();
-
-    const waterUsageResponse = await fetch(
-      'https://waterpositive.my.id/api/WaterUsage/GetAllData',
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    )
-
-    const waterUsageJson = await waterUsageResponse.json();
-
-    const waterDepotData = waterDepotsJson.map((item) => {
+    const waterDepotData = waterDepots.map((item) => {
       return {
         ...item,
-        waterUsages: waterUsageJson.filter((i) => i.waterDepotId === item.id),
+        waterUsages: waterUsages.filter((i) => i.waterDepotId === item.id),
       }
     })
 
@@ -74,7 +42,12 @@ router.get(
 router.get(
   '/water-depots/:id',
   asyncHandler(async (req, res) => {
-    const { id } = req.params
+    const { id } = req.params;
+
+    // Sinkronize
+    await syncronizeWaterDepots();
+    await syncronizeWaterUsages();
+  
     const waterDepot = await database('waterdepots').where({ id }).first();
 
     if (!waterDepot) {
@@ -82,44 +55,14 @@ router.get(
     }
 
     // Get Data Water Usage
-    const responseAccessToken = await fetch(
-      'https://waterpositive.my.id/UserApi/authenticate',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          apiKey: '123qweasd'
-        })
-      }
-    )
-
-    const responseAccessTokenJson = await responseAccessToken.json()
-
-    const { token } = responseAccessTokenJson;
-
-    const waterUsageResponse = await fetch(
-      'https://waterpositive.my.id/api/WaterUsage/GetAllData',
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    )
-
-    // const waterUsageJson = await waterUsageResponse.json();
-
-    const waterUsageJson = await database('waterusage').where({ waterDepotId: id });
+    const waterUsages = await database('waterusage').where({ waterDepotId: id });
 
     res.status(200).json({
       status: 'success',
       data: {
         waterDepot: {
           ...waterDepot,
-          // waterUsages: waterUsageJson.filter((item) => item.waterDepotId == id),
-          waterUsages: waterUsageJson
+          waterUsages
         }
       }
     });

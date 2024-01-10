@@ -3,7 +3,6 @@
 require('dotenv').config()
 const express = require('express')
 const bodyParser = require('body-parser')
-const FileUpload = require("express-fileupload");
 const cron = require('node-cron')
 const cors = require('cors')
 const morgan = require('morgan');
@@ -23,7 +22,6 @@ app.use(cors());
 app.use(morgan('combined'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(FileUpload());
 app.use(express.static('./src/public'));
 
 app.get('/', (req, res) => {
@@ -36,10 +34,9 @@ app.use('/api/v1', waterUsagesController)
 app.use('/api/v1', waterPriceController)
 app.use('/api/v1', sensorDataController)
 
-cron.schedule('0 */1 * * * *', async () => {
+cron.schedule('0 */3 * * *', async () => {
   try {
     const time = new Date();
-    console.log('Memulai Sinkronisasi data', `${time.getHours()} : ${time.getMinutes()} : ${time.getSeconds()}`)
    
     const waterUsage = await api.getWaterUsages();
     

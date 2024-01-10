@@ -5,11 +5,13 @@ const NotFoundError = require('../exeptions/NotFoundError');
 const AuthorizationError = require('../exeptions/AuthorizationError');
 const { database } = require('../database');
 const { authCheck } = require('../middlewares/auth');
+const { getWaterUsages, syncronizeWaterUsages } = require('../utils/api');
 
 const router = express.Router();
 
 router.get('/water/usage/daily', authCheck, asyncHandler(async (req, res) => {
-
+    // syncronize data
+    await syncronizeWaterUsages();
 
     let waterUsage;
 
