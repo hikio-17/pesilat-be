@@ -2,7 +2,7 @@ const { database } = require("../database");
 
 const BASE_URL = 'https://waterpositive.my.id';
 
-async function getAccessToken () {
+async function getAccessToken() {
   const responseAccessToken = await fetch(
     `${process.env.BASE_URL}/UserApi/authenticate`,
     {
@@ -23,7 +23,7 @@ async function getAccessToken () {
   return token
 }
 
-async function syncronizeWaterUsages () {
+async function syncronizeWaterUsages() {
   try {
     const token = await getAccessToken()
     const waterUsageResponse = await fetch(
@@ -46,20 +46,51 @@ async function syncronizeWaterUsages () {
   }
 }
 
-async function createUser (data) {
- try {
-  const token = await getAccessToken();
-  const userResponse = await fetch('https://waterpositive.my.id/api/UserProfile/InsertData', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`
-    },
-    body: data,
-  });
+async function createUser(data) {
+  try {
+    const token = await getAccessToken();
+    const userResponse = await fetch('https://waterpositive.my.id/api/UserProfile/InsertData', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: data,
+    });
 
-  const isCreated = await userResponse.json();
+    const isCreated = await userResponse.json();
 
-  if (isCreated) {
+    if (isCreated) {
+      const usersResponse = await fetch('https://waterpositive.my.id/api/UserProfile/GetAllData', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const users = await usersResponse.json();
+
+      return users.slice(-1)[0];
+    }
+  } catch (error) {
+    console.log('CREATE USER FROM API ERROR', error)
+  }
+}
+
+async function updateUserById(data, id) {
+
+  try {
+    const token = await getAccessToken();
+    const userResponse = await fetch('https://waterpositive.my.id/api/UserProfile/UpdateData', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: data,
+    });
+
+    // const isUpdate = await userResponse.json();
+
+
     const usersResponse = await fetch('https://waterpositive.my.id/api/UserProfile/GetAllData', {
       method: 'GET',
       headers: {
@@ -69,22 +100,21 @@ async function createUser (data) {
 
     const users = await usersResponse.json();
 
-    return users.slice(-1)[0];
-  }
- } catch (error) {
+    const userUpdated = users.find((item) => item.id === id);
+    console.log(users)
+    return userUpdated;
+
+  } catch (error) {
     console.log('CREATE USER FROM API ERROR', error)
- }
-}
-
-async function updateUserById (data, id) {
+  }
 
 }
 
-async function deleteUserById (id) {
+async function deleteUserById(id) {
 
 }
 
-async function createWaterPrice (data) {
+async function createWaterPrice(data) {
   try {
     const token = await getAccessToken();
     const waterPriceResponse = await fetch('https://waterpositive.my.id/api/WaterPrice/InsertData', {
@@ -106,21 +136,21 @@ async function createWaterPrice (data) {
         }
       });
 
-    const waterPrice = await waterPriceResponse.json();
+      const waterPrice = await waterPriceResponse.json();
 
-    console.log(waterPrice[waterPrice.length - 1]);
-    return waterPrice[waterPrice.length - 1];
-  }
+      console.log(waterPrice[waterPrice.length - 1]);
+      return waterPrice[waterPrice.length - 1];
+    }
   } catch (error) {
     console.log(error);
   }
 }
 
-async function updateWaterPriceById (data, id) {
+async function updateWaterPriceById(data, id) {
 
 }
 
-async function deleteWaterPriceById (id) {
+async function deleteWaterPriceById(id) {
 
 }
 
@@ -140,7 +170,7 @@ async function getAllUsers() {
   return users;
 }
 
-async function syncronizeWaterDepots () {
+async function syncronizeWaterDepots() {
   try {
     const token = await getAccessToken();
     const responseWaterDepots = await fetch('https://waterpositive.my.id/api/WaterDepot/GetAllData', {
@@ -160,7 +190,7 @@ async function syncronizeWaterDepots () {
   }
 }
 
-async function syncronizeWaterPrice () {
+async function syncronizeWaterPrice() {
   try {
     const token = await getAccessToken();
 
