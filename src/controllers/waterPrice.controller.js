@@ -4,10 +4,14 @@ const { database } = require('../database');
 const NotFoundError = require('../exeptions/NotFoundError');
 const { superAdmin, authCheck } = require('../middlewares/auth');
 const { validateWaterPriceData } = require('../validators/waterPriceValidate');
+const { syncronizeWaterPrice, createWaterPrice } = require('../utils/api');
 
 const router = express.Router();
 
 router.get('/water-price', asyncHandler(async (req, res) => {
+    // sinchronize data
+    await syncronizeWaterPrice();
+    
     const waterPrices = await database('waterprice');
 
     res.status(200).json({
@@ -19,6 +23,8 @@ router.get('/water-price', asyncHandler(async (req, res) => {
 }));
 
 router.get('/water-price/:id', asyncHandler(async (req, res) => {
+    // syncronize data
+    await syncronizeWaterPrice();
     const { id } = req.params;
     const waterPrice = await database('waterprice').where({ id }).first();
 
@@ -35,11 +41,24 @@ router.get('/water-price/:id', asyncHandler(async (req, res) => {
 }));
 
 router.post('/water-price', validateWaterPriceData, authCheck, superAdmin, asyncHandler(async (req, res) => {
-    console.log(req.user);
-    const waterPrice = await database('waterprice').insert({
+    const waterPriceData = {
         ...req.body,
         updatedBy: req.user.fullName,
-    }).returning('*');
+    };
+
+    const formData = new FormData();
+
+    for (const [key, value] of Object.entries(waterPriceData)) {
+        formData.set(key, value);
+    }
+
+    // created Water Price
+    const waterPrice = await createWaterPrice(FormData);
+
+    console.log(waterPrice, 'ini hasil created nya');
+
+    // Inser to db
+    await database('waterprice').insert(waterPrice);
 
     res.status(200).json({
         status: 'success',

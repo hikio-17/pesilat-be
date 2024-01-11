@@ -41,15 +41,39 @@ async function syncronizeWaterUsages () {
       await database('waterusage').truncate();
       await database('waterusage').insert(waterUsageJson);
     }
-
-    return waterUsageJson
   } catch (error) {
     console.log(error);
   }
 }
 
 async function createUser (data) {
+ try {
+  const token = await getAccessToken();
+  const userResponse = await fetch('https://waterpositive.my.id/api/UserProfile/InsertData', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: data,
+  });
 
+  const isCreated = await userResponse.json();
+
+  if (isCreated) {
+    const usersResponse = await fetch('https://waterpositive.my.id/api/UserProfile/GetAllData', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const users = await usersResponse.json();
+
+    return users.slice(-1)[0];
+  }
+ } catch (error) {
+    console.log('CREATE USER FROM API ERROR', error)
+ }
 }
 
 async function updateUserById (data, id) {
@@ -60,8 +84,36 @@ async function deleteUserById (id) {
 
 }
 
-async function createWaterPrice () {
+async function createWaterPrice (data) {
+  try {
+    const token = await getAccessToken();
+    const waterPriceResponse = await fetch('https://waterpositive.my.id/api/WaterPrice/InsertData', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+      body: data,
+    });
 
+    const isWaterPriceCreated = await waterPriceResponse.json();
+
+    if (isWaterPriceCreated) {
+      const waterPriceResponse = await fetch('https://waterpositive.my.id/api/WaterPrice/GetAllData', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      });
+
+    const waterPrice = await waterPriceResponse.json();
+
+    console.log(waterPrice[waterPrice.length - 1]);
+    return waterPrice[waterPrice.length - 1];
+  }
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 async function updateWaterPriceById (data, id) {
@@ -103,8 +155,28 @@ async function syncronizeWaterDepots () {
       await database('waterdepots').truncate();
       await database('waterdepots').insert(waterDepots);
     }
+  } catch (error) {
+    console.log(error);
+  }
+}
 
-    return waterDepots;
+async function syncronizeWaterPrice () {
+  try {
+    const token = await getAccessToken();
+
+    const waterPriceResponse = await fetch('https://waterpositive.my.id/api/WaterPrice/GetAllData', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const waterPrice = await waterPriceResponse.json();
+
+    if (waterPrice.length > 0) {
+      await database('waterprice').truncate();
+      await database('waterprice').insert(waterPrice);
+    }
   } catch (error) {
     console.log(error);
   }
@@ -120,5 +192,6 @@ module.exports = {
   deleteWaterPriceById,
   getAllUsers,
   syncronizeWaterDepots,
-  syncronizeWaterUsages
+  syncronizeWaterUsages,
+  syncronizeWaterPrice,
 }

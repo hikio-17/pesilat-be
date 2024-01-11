@@ -11,6 +11,7 @@ const { createAccessToken } = require('../tokenize/tokenManager');
 const ClientError = require('../exeptions/ClientError');
 const { validateUserRegister } = require('../validators/userRegisterValidate');
 const InvariantError = require('../exeptions/InvariantError');
+const { createUser } = require('../utils/api');
 
 const router = express.Router();
 
@@ -43,47 +44,24 @@ router.post(
   '/auth/signup',
   validateUserRegister,
   asyncHandler(async (req, res) => {
-    // Get AccessToken from API IOT
-    // const responseAccessToken = await fetch(`${process.env.BASE_URL}/UserApi/authenticate`, {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify({
-    //     apiKey: '123qweasd',
-    //   }),
-    // });
-
-    // const responseAccessTokenJson = await responseAccessToken.json();
-
-    // const { token } = responseAccessTokenJson;
-
-    // // create from data
-    // const formData = new FormData();
-    // for (const [key, value] of Object.entries(req.body)) {
-    //   formData.set(key, value);
-    // }
-
-    // // Insert Data user in API IOT
-    // const response = await fetch(`${process.env.BASE_URL}/api/UserProfile/InsertData`, {
-    //   method: 'POST',
-    //   headers: {
-    //     Authorization: `Bearer ${token}`,
-    //   },
-    //   body: formData,
-    // });
     const checkAvailabilityUser = await database('users').where({ ktp: req.body.ktp }).first();
 
     if (checkAvailabilityUser) {
       throw new InvariantError('NIK yang anda gunakan sudah terdaftar');
     }
-  
+    // create from data
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
-    const user = await database('users').insert({
-      role: 2,
-      ...req.body,
-      password: hashedPassword,
-    }).returning('*');
+
+    const formData = new FormData();
+    for (const [key, value] of Object.entries(req.body)) {
+      formData.set(key, value);
+    }
+
+    formData.set('password', hashedPassword);
+
+    const userData = await createUser(formData);
+
+    const user = await database('users').insert(userData).returning('*');
 
     if (!user) {
       throw new ClientError('Gagal membuat akun. silahkan hubungi admin');
