@@ -63,6 +63,7 @@ router.post(
 
     const user = await database('users').insert({
       ...userData,
+      role: 2,
       depotId: req.body.depotId,
     }).returning('*');
 
