@@ -57,15 +57,19 @@ router.post(
       formData.set(key, value);
     }
 
+    console.log(formData, 'data formdata')
+
     formData.set('password', hashedPassword);
 
     const userData = await createUser(formData);
+    console.log(userData, 'data user');
 
-    const user = await database('users').insert({
+    const insertData = {
       ...userData,
-      role: 2,
+      role: req.body.role || 2,
       depotId: req.body.depotId,
-    }).returning('*');
+    }
+    const user = await database('users').insert(insertData).returning('*');
 
     if (!user) {
       throw new ClientError('Gagal membuat akun. silahkan hubungi admin');
