@@ -15,6 +15,8 @@ const router = express.Router();
 
 router.get('/users', authCheck, asyncHandler(async (req, res) => {
 
+
+
   let users;
 
   if (req.user.role === 0) {
@@ -58,7 +60,7 @@ router.get('/users/:id', asyncHandler(async (req, res) => {
 }));
 
 router.post('/users', asyncHandler(async (req, res) => {
-
+  console.log(req.body);
   const checkAvailabiltyUser = await database('users').where({ ktp: req.body.ktp }).first();
 
   if (checkAvailabiltyUser) {
