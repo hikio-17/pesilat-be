@@ -61,7 +61,10 @@ router.post(
 
     const userData = await createUser(formData);
 
-    const user = await database('users').insert(userData).returning('*');
+    const user = await database('users').insert({
+      ...userData,
+      depotId: req.body.depotId,
+    }).returning('*');
 
     if (!user) {
       throw new ClientError('Gagal membuat akun. silahkan hubungi admin');
