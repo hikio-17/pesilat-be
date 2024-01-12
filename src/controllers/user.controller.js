@@ -15,8 +15,6 @@ const router = express.Router();
 
 router.get('/users', authCheck, asyncHandler(async (req, res) => {
 
-
-
   let users;
 
   if (req.user.role === 0) {
