@@ -90,22 +90,21 @@ async function updateUserById(data, id) {
 
     // const isUpdate = await userResponse.json();
 
-
-    const usersResponse = await fetch('https://waterpositive.my.id/api/UserProfile/GetAllData', {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const users = await usersResponse.json();
-
-    const userUpdated = users.find((item) => item.id === id);
-    console.log(users)
-    return userUpdated;
+    if (userResponse.ok) {
+      const usersResponse = await fetch('https://waterpositive.my.id/api/UserProfile/GetAllData', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    
+      const users = await usersResponse.json();
+      const userUpdated = users.find((item) => item.id == id);
+      return userUpdated;
+    }
 
   } catch (error) {
-    console.log('CREATE USER FROM API ERROR', error)
+    console.log('UPDATE USER FROM API ERROR', error)
   }
 
 }
