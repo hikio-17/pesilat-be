@@ -129,6 +129,14 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
     throw new NotFoundError('User tidak ditemukan');
   }
 
+  let username;
+
+  if (req.body.username) {
+    username = req.body.username;
+  } else {
+    username = existingUser.username;
+  }
+
   let hashedPassword;
   if (req.body.password) {
     try {
@@ -139,6 +147,54 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
     }
   } else {
     hashedPassword = existingUser.password;
+  }
+
+  let fullName;
+
+  if (req.body.fullName) {
+    fullName = req.body.fullName;
+  } else {
+    fullName = existingUser.fullName;
+  }
+
+  let phone;
+
+  if (req.body.phone) {
+    phone = req.body.phone;
+  } else {
+    phone = existingUser.phone;
+  }
+
+  let email;
+
+  if (req.body.email) {
+    email = req.body.email;
+  } else {
+    email = existingUser.email;
+  }
+
+  let alamat;
+
+  if (req.body.alamat) {
+    alamat = req.body.alamat;
+  } else {
+    alamat = existingUser.alamat;
+  }
+
+  let ktp;
+
+  if (req.body.ktp) {
+    ktp = req.body.ktp;
+  } else {
+    ktp = existingUser.ktp;
+  }
+
+  let role;
+
+  if (req.body.role) {
+    role = req.body.role;
+  } else {
+    role = existingUser.role;
   }
 
   let imageFileName;
@@ -172,7 +228,6 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
         fs.unlinkSync(filepath);
       } catch (err) {
         console.error('Error deleting existing image:', err);
-        return res.status(500).json({ msg: 'Terjadi kesalahan internal server' });
       }
     }
 
@@ -186,19 +241,23 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
   }
 
   const formData = new FormData();
-  for (const [key, value] of Object.entries(req.body)) {
-    formData.set(key, value);
-  }
 
+  formData.set('username', username);
   formData.set('password', hashedPassword);
+  formData.set('fullName', fullName);
+  formData.set('phone', phone);
+  formData.set('email', email);
+  formData.set('alamat', alamat);
+  formData.set('ktp', ktp);
   formData.set('picUrl', imageFileName);
+  formData.set('role', role);
   formData.set('id', id);
 
   const userData = await updateUserById(formData, id);
-// console.log(userData);
+
   await database('users').where({ id }).update({
-    userData,
-    // depotId: req.body.depotId,
+    ...userData,
+    depotId: req.body.depotId,
   });
 
   const updatedUser = await database('users').where({ id }).first();
