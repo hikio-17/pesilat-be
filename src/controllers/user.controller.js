@@ -58,7 +58,7 @@ router.get('/users/:id', asyncHandler(async (req, res) => {
 }));
 
 router.post('/users', asyncHandler(async (req, res) => {
-  console.log(req.body);
+
   const checkAvailabiltyUser = await database('users').where({ ktp: req.body.ktp }).first();
 
   if (checkAvailabiltyUser) {
@@ -134,7 +134,11 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
   if (req.body.username) {
     username = req.body.username;
   } else {
-    username = existingUser.username;
+    if (existingUser.username === null) {
+      username = "undefined"
+    } else {
+      username = existingUser.username;
+    }
   }
 
   let hashedPassword;
@@ -197,6 +201,14 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
     role = existingUser.role;
   }
 
+  let pin;
+
+  if (req.body.pin) {
+    pin = req.body.pin;
+  } else {
+    pin = existingUser.pin;
+  }
+
   let imageFileName;
 
   if (!req.files || !req.files.image) {
@@ -241,6 +253,9 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
   }
 
   const formData = new FormData();
+  for (const [key, value] of Object.entries(req.body)) {
+    formData.set(key, value);
+  }
 
   formData.set('username', username);
   formData.set('password', hashedPassword);
@@ -250,6 +265,7 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
   formData.set('alamat', alamat);
   formData.set('ktp', ktp);
   formData.set('picUrl', imageFileName);
+  formData.set('pin', pin);
   formData.set('role', role);
   formData.set('id', id);
 
