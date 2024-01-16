@@ -5,6 +5,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const cron = require('node-cron')
 const cors = require('cors')
+const FileUpload = require("express-fileupload")
 const morgan = require('morgan');
 const { errorHandler } = require('./middlewares/errorHandler')
 const userController = require('./controllers/user.controller')
@@ -21,6 +22,7 @@ app.use(cors());
 app.use(morgan('combined'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(FileUpload());
 app.use(express.static('./src/public'));
 
 app.get('/', (req, res) => {

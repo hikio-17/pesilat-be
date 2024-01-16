@@ -9,10 +9,12 @@ const ClientError = require('../exeptions/ClientError');
 const InvariantError = require('../exeptions/InvariantError');
 const { authCheck } = require('../middlewares/auth');
 const { getAllUsers } = require('../utils/api');
+const { createUser, updateUserById } = require('../utils/api');
 
 const router = express.Router();
 
 router.get('/users', authCheck, asyncHandler(async (req, res) => {
+
   let users;
 
   if (req.user.role === 0) {
@@ -56,7 +58,7 @@ router.get('/users/:id', asyncHandler(async (req, res) => {
 }));
 
 router.post('/users', asyncHandler(async (req, res) => {
-  console.log(req.body);
+
   const checkAvailabiltyUser = await database('users').where({ ktp: req.body.ktp }).first();
 
   if (checkAvailabiltyUser) {
@@ -91,38 +93,19 @@ router.post('/users', asyncHandler(async (req, res) => {
     });
   }
 
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(req.body)) {
+    formData.set(key, value);
+  }
 
-  // const responseAccessToken = await fetch(`${process.env.BASE_URL}/UserApi/authenticate`, {
-  //   method: 'POST',
-  //   headers: {
-  //     'Content-Type': 'application/json',
-  //   },
-  //   body: JSON.stringify({
-  //     apiKey: '123qweasd',
-  //   }),
-  // });
+  formData.set('password', hashedPassword);
+  formData.set('picUrl', imageFileName);
 
-  // const responseAccessTokenJson = await responseAccessToken.json();
-
-  // const { token } = responseAccessTokenJson;
-
-  // const body = {
-  //   ...req.body,
-  //   password: hashedPassword,
-  //   picUrl: completeImageUrl,
-  // }
-  // const response = await fetch(`${process.env.BASE_URL}/api/UserProfile/InsertData`, {
-  //   method: 'POST',
-  //   headers: {
-  //     Authorization: `Bearer ${token}`,
-  //   },
-  //   body: JSON.stringify(body),
-  // });
+  const userData = await createUser(formData);
 
   const user = await database('users').insert({
-    ...req.body,
-    password: hashedPassword,
-    picUrl: imageFileName,
+    ...userData,
+    depotId: req.body.depotId,
   }).returning('*');
 
   if (!user) {
@@ -146,79 +129,151 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
     throw new NotFoundError('User tidak ditemukan');
   }
 
-  // const responseAccessToken = await axios.post(`${process.env.BASE_URL}/UserApi/authenticate`, {
-  //   method: 'POST',
-  //   headers: {
-  //     'Content-Type': 'application/json',
-  //   },
-  //   body: JSON.stringify({
-  //     apiKey: '123qweasd',
-  //   }),
-  // });
+  let username;
 
-  // const responseAccessTokenJson = await responseAccessToken.json();
-
-  //   const { token } = responseAccessTokenJson;
-
-  // const dataToSend = {
-  //   id,
-  //   fullName,
-  //   alamat,
-  //   password,
-  //   email,
-  //   phone,
-  //   ktp
-  // };
-
-  // await axios.post('https://waterpositive.my.id/api/UserProfile/UpdateData', {
-  //   method: 'POST',
-  //   headers: {
-  //     Authorization: `Bearer ${token}`,
-  //   },
-  //   body: dataToSend,
-  // });
+  if (req.body.username) {
+    username = req.body.username;
+  } else {
+    if (existingUser.username === null) {
+      username = "undefined"
+    } else {
+      username = existingUser.username;
+    }
+  }
 
   let hashedPassword;
   if (req.body.password) {
     try {
       hashedPassword = await bcrypt.hash(req.body.password, 10);
     } catch (error) {
-      throw new Error('Error hashing password');
+      console.error('Error hashing password:', error);
+      throw new Error('Terjadi kesalahan dalam menghash kata sandi');
     }
+  } else {
+    hashedPassword = existingUser.password;
   }
 
-  let fileName;
-  if (req.files === null) {
-    imageFileName = existingUser.picUrl;
+  let fullName;
+
+  if (req.body.fullName) {
+    fullName = req.body.fullName;
+  } else {
+    fullName = existingUser.fullName;
+  }
+
+  let phone;
+
+  if (req.body.phone) {
+    phone = req.body.phone;
+  } else {
+    phone = existingUser.phone;
+  }
+
+  let email;
+
+  if (req.body.email) {
+    email = req.body.email;
+  } else {
+    email = existingUser.email;
+  }
+
+  let alamat;
+
+  if (req.body.alamat) {
+    alamat = req.body.alamat;
+  } else {
+    alamat = existingUser.alamat;
+  }
+
+  let ktp;
+
+  if (req.body.ktp) {
+    ktp = req.body.ktp;
+  } else {
+    ktp = existingUser.ktp;
+  }
+
+  let role;
+
+  if (req.body.role) {
+    role = req.body.role;
+  } else {
+    role = existingUser.role;
+  }
+
+  let pin;
+
+  if (req.body.pin) {
+    pin = req.body.pin;
+  } else {
+    pin = existingUser.pin;
+  }
+
+  let imageFileName;
+
+  if (!req.files || !req.files.image) {
+    if (existingUser.picUrl) {
+      imageFileName = existingUser.picUrl;
+    } else {
+      imageFileName = "undefined";
+    }
   } else {
     const file = req.files.image;
     const fileSize = file.data.length;
     const ext = path.extname(file.name);
-    fileName = `${Date.now()}${ext}`;
+    const fileName = `${Date.now()}${ext}`;
     const allowedType = [".png", ".jpg", ".jpeg"];
 
-    if (!allowedType.includes(ext.toLowerCase()))
-      return res.status(422).json({ msg: "Format gambar yang di izinkan .png .jpg .jpeg" });
-    if (fileSize > 5000000)
-      return res.status(422).json({ msg: "Ukuran gambar tidak lebih dari 5 MB" });
-
-    if (existingUser.picUrl) {
-      const fileNameImage = existingUser.picUrl.split('/').pop();
-      const filepath = `./src/public/${fileNameImage}`;
-      fs.unlinkSync(filepath);
+    if (!allowedType.includes(ext.toLowerCase())) {
+      return res.status(422).json({ msg: "Format gambar yang diizinkan: .png, .jpg, .jpeg" });
     }
 
-    file.mv(`./src/public/${fileName}`, (err) => {
-      if (err) return res.status(500).json({ msg: err.message });
-    });
+    if (fileSize > 5000000) {
+      return res.status(422).json({ msg: "Ukuran gambar tidak boleh lebih dari 5 MB" });
+    }
+
+    if (existingUser.picUrl !== "undefined") {
+      const fileNameImage = existingUser.picUrl.split('/').pop();
+      const filepath = `./src/public/${fileNameImage}`;
+
+      try {
+        fs.unlinkSync(filepath);
+      } catch (err) {
+        console.error('Error deleting existing image:', err);
+      }
+    }
+
+    if (imageFileName !== "undefined") {
+      file.mv(`./src/public/${fileName}`, (err) => {
+        if (err) return res.status(500).json({ msg: err.message });
+      });
+    }
+
+    imageFileName = `${req.protocol}://${req.get("host")}/${fileName}`;
   }
 
-  const imageFileName = `${req.protocol}://${req.get("host")}/${fileName}`;
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(req.body)) {
+    formData.set(key, value);
+  }
+
+  formData.set('username', username);
+  formData.set('password', hashedPassword);
+  formData.set('fullName', fullName);
+  formData.set('phone', phone);
+  formData.set('email', email);
+  formData.set('alamat', alamat);
+  formData.set('ktp', ktp);
+  formData.set('picUrl', imageFileName);
+  formData.set('pin', pin);
+  formData.set('role', role);
+  formData.set('id', id);
+
+  const userData = await updateUserById(formData, id);
 
   await database('users').where({ id }).update({
-    ...req.body,
-    password: hashedPassword,
-    picUrl: imageFileName,
+    ...userData,
+    depotId: req.body.depotId,
   });
 
   const updatedUser = await database('users').where({ id }).first();
@@ -230,6 +285,7 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
     },
   });
 }));
+
 
 router.delete('/users/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
