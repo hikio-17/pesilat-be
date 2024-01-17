@@ -71,6 +71,18 @@ router.post('/users', asyncHandler(async (req, res) => {
     throw new InvariantError(`Telepon: ${req.body.phone} sudah terdaftar`);
   }
 
+  const checkAvailabiltyUserName = await database('users').where({ phone: req.body.username }).first();
+
+  if (checkAvailabiltyUserName) {
+    throw new InvariantError(`Telepon: ${req.body.username} sudah terdaftar`);
+  }
+
+  const checkAvailabiltyEmail = await database('users').where({ phone: req.body.email }).first();
+
+  if (checkAvailabiltyEmail) {
+    throw new InvariantError(`Telepon: ${req.body.email} sudah terdaftar`);
+  }
+
   const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
   let imageFileName;
