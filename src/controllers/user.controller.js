@@ -92,7 +92,7 @@ router.post('/users', asyncHandler(async (req, res) => {
     const fileSize = file.data.length;
     const ext = path.extname(file.name);
     const fileName = `${Date.now()}${ext}`;
-    imageFileName = `${req.protocol}://${req.get("host")}/${fileName}`;
+    imageFileName = `https://api-pesilat.koyeb.api/${fileName}`;
     const allowedType = [".png", ".jpg", ".jpeg"];
 
     if (!allowedType.includes(ext.toLowerCase()))
