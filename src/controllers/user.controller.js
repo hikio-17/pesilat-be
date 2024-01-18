@@ -41,9 +41,23 @@ router.get('/users', authCheck, asyncHandler(async (req, res) => {
   });
 }));
 
-router.get('/users/:id', asyncHandler(async (req, res) => {
+router.get('/users/:id', authCheck, asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const user = await database('users').where({ id }).first();
+
+  let user;
+
+  if (req.user.role === 0) {
+    user = await database('users').where({ id }).first();
+  }
+
+  if (req.user.role === 1) {
+    user = await database('users').where({ id }).first();
+  }
+
+  if (req.user.role === 2) {
+    user = await database('users').where({ id }).first();
+  }
+
 
   if (!user) {
     throw new NotFoundError('User tidak ditemukan');
@@ -57,7 +71,7 @@ router.get('/users/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-router.post('/users', asyncHandler(async (req, res) => {
+router.post('/users', authCheck, asyncHandler(async (req, res) => {
 
   const checkAvailabiltyUser = await database('users').where({ ktp: req.body.ktp }).first();
 
@@ -132,7 +146,7 @@ router.post('/users', asyncHandler(async (req, res) => {
   });
 }));
 
-router.put('/users/:id', asyncHandler(async (req, res) => {
+router.put('/users/:id', authCheck, asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const existingUser = await database('users').where({ id }).first();
@@ -299,7 +313,7 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
 }));
 
 
-router.delete('/users/:id', asyncHandler(async (req, res) => {
+router.delete('/users/:id', authCheck, asyncHandler(async (req, res) => {
   const { id } = req.params;
   const user = await database('users').where({ id }).first();
 
