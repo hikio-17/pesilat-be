@@ -18,13 +18,22 @@ router.get('/sensor/data', authCheck, asyncHandler(async (req, res) => {
 
     if (req.user.role === 1) {
         sensordata = await database('sensordatas').where({ waterDepotId: req.user.depotId });
-        const waterCapacity = await database('waterdepots').where({ id: req.user.depotId });
+        // const waterCapacity = await database('waterdepots').where({ id: req.user.depotId });
 
-        if (sensordata[0].waterLevel <= (waterCapacity[0].waterLevel * 0.333)) {
+        // if (sensordata[0].waterLevel <= (waterCapacity[0].waterLevel * 0.333)) {
+        //     waterStatus = "Merah";
+        // } else if (sensordata[0].waterLevel > (waterCapacity[0].waterLevel * 0.333) && sensordata[0].waterLevel <= (waterCapacity[0].waterLevel * 0.667)) {
+        //     waterStatus = "Kuning";
+        // } else if (sensordata[0].waterLevel > (waterCapacity[0].waterLevel * 0.667)) {
+        //     waterStatus = "Hijau";
+        // }
+        
+
+        if (sensordata[0].waterLevel <= (5000 * 0.333)) {
             waterStatus = "Merah";
-        } else if (sensordata[0].waterLevel > (waterCapacity[0].waterLevel * 0.333) && sensordata[0].waterLevel <= (waterCapacity[0].waterLevel * 0.667)) {
+        } else if (sensordata[0].waterLevel > (5000 * 0.333) && sensordata[0].waterLevel <= (5000 * 0.667)) {
             waterStatus = "Kuning";
-        } else if (sensordata[0].waterLevel > (waterCapacity[0].waterLevel * 0.667)) {
+        } else if (sensordata[0].waterLevel > (5000 * 0.667)) {
             waterStatus = "Hijau";
         }
     }
