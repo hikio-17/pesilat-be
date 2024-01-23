@@ -15,23 +15,39 @@ const router = express.Router();
 
 router.get('/users', authCheck, asyncHandler(async (req, res) => {
 
-  let users;
+  let usersData;
 
   if (req.user.role === 0) {
-    users = await database('users');
+    usersData = await database('users');
   }
 
   if (req.user.role === 1) {
-    users = await database('users').where({ depotId: req.user.depotId });
+    usersData = await database('users').where({ depotId: req.user.depotId });
   }
 
   if (req.user.role === 2) {
-    users = await database('users').where({ id: req.user.userId });
+    usersData = await database('users').where({ id: req.user.userId });
   }
 
-  if (!users) {
+  if (!usersData) {
     throw new NotFoundError(`User tidak ditemukan`);
   }
+
+  const users = usersData.map(user => ({
+    id: user.id,
+    username: user.username,
+    fullName: user.fullName,
+    phone: user.phone,
+    email: user.email,
+    alamat: user.alamat,
+    ktp: user.ktp,
+    picUrl: user.picUrl,
+    aktif: user.aktif,
+    role: user.role,
+    waterUsages: user.waterUsages,
+    updatedDate: user.updatedDate,
+    syncDate: user.syncDate
+  }));
 
   res.status(200).json({
     status: 'success',
@@ -41,13 +57,43 @@ router.get('/users', authCheck, asyncHandler(async (req, res) => {
   });
 }));
 
-router.get('/users/:id', asyncHandler(async (req, res) => {
+router.get('/users/:id', authCheck, asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const user = await database('users').where({ id }).first();
 
-  if (!user) {
+  let userData;
+
+  if (req.user.role === 0) {
+    userData = await database('users').where({ id }).first();
+  }
+
+  if (req.user.role === 1) {
+    userData = await database('users').where({ id }).first();
+  }
+
+  if (req.user.role === 2) {
+    userData = await database('users').where({ id }).first();
+  }
+
+
+  if (!userData) {
     throw new NotFoundError('User tidak ditemukan');
   }
+
+  const user = {
+    id: userData.id,
+    username: userData.username,
+    fullName: userData.fullName,
+    phone: userData.phone,
+    email: userData.email,
+    alamat: userData.alamat,
+    ktp: userData.ktp,
+    picUrl: userData.picUrl,
+    aktif: userData.aktif,
+    role: userData.role,
+    waterUsages: userData.waterUsages,
+    updatedDate: userData.updatedDate,
+    syncDate: userData.syncDate
+  };
 
   res.status(200).json({
     status: 'success',
@@ -57,7 +103,7 @@ router.get('/users/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-router.post('/users', asyncHandler(async (req, res) => {
+router.post('/users', authCheck, asyncHandler(async (req, res) => {
 
   const checkAvailabiltyUser = await database('users').where({ ktp: req.body.ktp }).first();
 
@@ -69,6 +115,18 @@ router.post('/users', asyncHandler(async (req, res) => {
 
   if (checkAvailabiltyPhone) {
     throw new InvariantError(`Telepon: ${req.body.phone} sudah terdaftar`);
+  }
+
+  const checkAvailabiltyUserName = await database('users').where({ phone: req.body.username }).first();
+
+  if (checkAvailabiltyUserName) {
+    throw new InvariantError(`Telepon: ${req.body.username} sudah terdaftar`);
+  }
+
+  const checkAvailabiltyEmail = await database('users').where({ phone: req.body.email }).first();
+
+  if (checkAvailabiltyEmail) {
+    throw new InvariantError(`Telepon: ${req.body.email} sudah terdaftar`);
   }
 
   const hashedPassword = await bcrypt.hash(req.body.password, 10);
@@ -103,14 +161,30 @@ router.post('/users', asyncHandler(async (req, res) => {
 
   const userData = await createUser(formData);
 
-  const user = await database('users').insert({
+  const userDataResponse = await database('users').insert({
     ...userData,
     depotId: req.body.depotId,
   }).returning('*');
 
-  if (!user) {
+  if (!userDataResponse) {
     throw new ClientError('Terjadi kesalahan dalam memasukan data');
   }
+
+  const user = {
+    id: userDataResponse.id,
+    username: userDataResponse.username,
+    fullName: userDataResponse.fullName,
+    phone: userDataResponse.phone,
+    email: userDataResponse.email,
+    alamat: userDataResponse.alamat,
+    ktp: userDataResponse.ktp,
+    picUrl: userDataResponse.picUrl,
+    aktif: userDataResponse.aktif,
+    role: userDataResponse.role,
+    waterUsages: userDataResponse.waterUsages,
+    updatedDate: userDataResponse.updatedDate,
+    syncDate: userDataResponse.syncDate
+  };
 
   res.status(200).json({
     status: 'success',
@@ -120,7 +194,7 @@ router.post('/users', asyncHandler(async (req, res) => {
   });
 }));
 
-router.put('/users/:id', asyncHandler(async (req, res) => {
+router.put('/users/:id', authCheck, asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const existingUser = await database('users').where({ id }).first();
@@ -278,16 +352,32 @@ router.put('/users/:id', asyncHandler(async (req, res) => {
 
   const updatedUser = await database('users').where({ id }).first();
 
+  const user = {
+    id: updatedUser.id,
+    username: updatedUser.username,
+    fullName: updatedUser.fullName,
+    phone: updatedUser.phone,
+    email: updatedUser.email,
+    alamat: updatedUser.alamat,
+    ktp: updatedUser.ktp,
+    picUrl: updatedUser.picUrl,
+    aktif: updatedUser.aktif,
+    role: updatedUser.role,
+    waterUsages: updatedUser.waterUsages,
+    updatedDate: updatedUser.updatedDate,
+    syncDate: updatedUser.syncDate
+  };
+
   res.status(200).json({
     status: 'success',
     data: {
-      user: updatedUser,
+      user,
     },
   });
 }));
 
 
-router.delete('/users/:id', asyncHandler(async (req, res) => {
+router.delete('/users/:id', authCheck, asyncHandler(async (req, res) => {
   const { id } = req.params;
   const user = await database('users').where({ id }).first();
 

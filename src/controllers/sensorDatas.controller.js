@@ -9,8 +9,8 @@ const { superAdmin, authCheck } = require('../middlewares/auth');
 const router = express.Router();
 
 router.get('/sensor/data', authCheck, asyncHandler(async (req, res) => {
-
     let sensordata;
+    let waterStatus;
 
     if (req.user.role === 0) {
         sensordata = await database('sensordatas');
@@ -18,6 +18,24 @@ router.get('/sensor/data', authCheck, asyncHandler(async (req, res) => {
 
     if (req.user.role === 1) {
         sensordata = await database('sensordatas').where({ waterDepotId: req.user.depotId });
+        // const waterCapacity = await database('waterdepots').where({ id: req.user.depotId });
+
+        // if (sensordata[0].waterLevel <= (waterCapacity[0].waterLevel * 0.333)) {
+        //     waterStatus = "Merah";
+        // } else if (sensordata[0].waterLevel > (waterCapacity[0].waterLevel * 0.333) && sensordata[0].waterLevel <= (waterCapacity[0].waterLevel * 0.667)) {
+        //     waterStatus = "Kuning";
+        // } else if (sensordata[0].waterLevel > (waterCapacity[0].waterLevel * 0.667)) {
+        //     waterStatus = "Hijau";
+        // }
+        
+
+        if (sensordata[0].waterLevel <= (5000 * 0.333)) {
+            waterStatus = "Merah";
+        } else if (sensordata[0].waterLevel > (5000 * 0.333) && sensordata[0].waterLevel <= (5000 * 0.667)) {
+            waterStatus = "Kuning";
+        } else if (sensordata[0].waterLevel > (5000 * 0.667)) {
+            waterStatus = "Hijau";
+        }
     }
 
     if (!sensordata) {
@@ -28,6 +46,7 @@ router.get('/sensor/data', authCheck, asyncHandler(async (req, res) => {
         status: 'success',
         data: {
             sensordata,
+            waterStatus,
         },
     });
 }));
