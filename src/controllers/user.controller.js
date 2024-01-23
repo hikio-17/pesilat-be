@@ -45,6 +45,7 @@ router.get('/users', authCheck, asyncHandler(async (req, res) => {
     aktif: user.aktif,
     role: user.role,
     waterUsages: user.waterUsages,
+    depotId: user.depotId,
     updatedDate: user.updatedDate,
     syncDate: user.syncDate
   }));
@@ -91,6 +92,7 @@ router.get('/users/:id', authCheck, asyncHandler(async (req, res) => {
     aktif: userData.aktif,
     role: userData.role,
     waterUsages: userData.waterUsages,
+    depotId: userData.depotId,
     updatedDate: userData.updatedDate,
     syncDate: userData.syncDate
   };
@@ -117,16 +119,16 @@ router.post('/users', authCheck, asyncHandler(async (req, res) => {
     throw new InvariantError(`Telepon: ${req.body.phone} sudah terdaftar`);
   }
 
-  const checkAvailabiltyUserName = await database('users').where({ phone: req.body.username }).first();
+  const checkAvailabiltyUserName = await database('users').where({ username: req.body.username }).first();
 
   if (checkAvailabiltyUserName) {
-    throw new InvariantError(`Telepon: ${req.body.username} sudah terdaftar`);
+    throw new InvariantError(`User name: ${req.body.username} sudah terdaftar`);
   }
 
-  const checkAvailabiltyEmail = await database('users').where({ phone: req.body.email }).first();
+  const checkAvailabiltyEmail = await database('users').where({ email: req.body.email }).first();
 
   if (checkAvailabiltyEmail) {
-    throw new InvariantError(`Telepon: ${req.body.email} sudah terdaftar`);
+    throw new InvariantError(`Email: ${req.body.email} sudah terdaftar`);
   }
 
   const hashedPassword = await bcrypt.hash(req.body.password, 10);
@@ -170,26 +172,27 @@ router.post('/users', authCheck, asyncHandler(async (req, res) => {
     throw new ClientError('Terjadi kesalahan dalam memasukan data');
   }
 
-  const user = {
-    id: userDataResponse.id,
-    username: userDataResponse.username,
-    fullName: userDataResponse.fullName,
-    phone: userDataResponse.phone,
-    email: userDataResponse.email,
-    alamat: userDataResponse.alamat,
-    ktp: userDataResponse.ktp,
-    picUrl: userDataResponse.picUrl,
-    aktif: userDataResponse.aktif,
-    role: userDataResponse.role,
-    waterUsages: userDataResponse.waterUsages,
-    updatedDate: userDataResponse.updatedDate,
-    syncDate: userDataResponse.syncDate
+  const userResponse = {
+    id: userDataResponse[0].id,
+    username: userDataResponse[0].username,
+    fullName: userDataResponse[0].fullName,
+    phone: userDataResponse[0].phone,
+    email: userDataResponse[0].email,
+    alamat: userDataResponse[0].alamat,
+    ktp: userDataResponse[0].ktp,
+    picUrl: userDataResponse[0].picUrl,
+    aktif: userDataResponse[0].aktif,
+    role: userDataResponse[0].role,
+    waterUsages: userDataResponse[0].waterUsages,
+    depotId: userDataResponse[0].depotId,
+    updatedDate: userDataResponse[0].updatedDate,
+    syncDate: userDataResponse[0].syncDate
   };
 
   res.status(200).json({
     status: 'success',
     data: {
-      user
+      user: userResponse,
     },
   });
 }));
@@ -206,6 +209,12 @@ router.put('/users/:id', authCheck, asyncHandler(async (req, res) => {
   let username;
 
   if (req.body.username) {
+    const checkAvailabiltyUserName = await database('users').where({ username: req.body.username }).first();
+
+    if (checkAvailabiltyUserName) {
+      throw new InvariantError(`User name: ${req.body.username} sudah terdaftar`);
+    }
+
     username = req.body.username;
   } else {
     if (existingUser.username === null) {
@@ -238,7 +247,14 @@ router.put('/users/:id', authCheck, asyncHandler(async (req, res) => {
   let phone;
 
   if (req.body.phone) {
+    const checkAvailabiltyPhone = await database('users').where({ phone: req.body.phone }).first();
+
+    if (checkAvailabiltyPhone) {
+      throw new InvariantError(`Telepon: ${req.body.phone} sudah terdaftar`);
+    }
+
     phone = req.body.phone;
+
   } else {
     phone = existingUser.phone;
   }
@@ -246,6 +262,12 @@ router.put('/users/:id', authCheck, asyncHandler(async (req, res) => {
   let email;
 
   if (req.body.email) {
+    const checkAvailabiltyEmail = await database('users').where({ email: req.body.email }).first();
+
+    if (checkAvailabiltyEmail) {
+      throw new InvariantError(`Email: ${req.body.email} sudah terdaftar`);
+    }
+
     email = req.body.email;
   } else {
     email = existingUser.email;
@@ -262,6 +284,12 @@ router.put('/users/:id', authCheck, asyncHandler(async (req, res) => {
   let ktp;
 
   if (req.body.ktp) {
+    const checkAvailabiltyUser = await database('users').where({ ktp: req.body.ktp }).first();
+
+    if (checkAvailabiltyUser) {
+      throw new InvariantError(`NIK: ${req.body.ktp} sudah terdaftar`);
+    }
+
     ktp = req.body.ktp;
   } else {
     ktp = existingUser.ktp;
@@ -364,6 +392,7 @@ router.put('/users/:id', authCheck, asyncHandler(async (req, res) => {
     aktif: updatedUser.aktif,
     role: updatedUser.role,
     waterUsages: updatedUser.waterUsages,
+    depotId: updatedUser.depotId,
     updatedDate: updatedUser.updatedDate,
     syncDate: updatedUser.syncDate
   };
