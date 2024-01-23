@@ -35,6 +35,11 @@ app.use('/api/v1', waterUsagesController)
 app.use('/api/v1', waterPriceController)
 app.use('/api/v1', sensorDataController)
 
+app.get('/api/test', (req, res) => {
+  const { filter } = req.query
+  res.send(filter);
+})
+
 cron.schedule('0 */3 * * *', async () => {
   try {
     await api.syncronizeWaterDepots();
@@ -43,7 +48,7 @@ cron.schedule('0 */3 * * *', async () => {
   } catch (error) {
     console.log(error)
   }
-})
+});
 
 app.use(errorHandler)
 
