@@ -46,6 +46,7 @@ router.post('/water-price', validateWaterPriceData, authCheck, superAdmin, async
         updatedBy: req.user.fullName,
     };
 
+    console.log(waterPriceData)
     const formData = new FormData();
 
     for (const [key, value] of Object.entries(waterPriceData)) {
