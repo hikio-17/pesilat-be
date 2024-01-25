@@ -3,19 +3,19 @@ const { body, validationResult } = require('express-validator');
 const InvariantError = require('../exeptions/InvariantError');
 
 exports.validateWaterPriceData = [
-    body('Periode')
+    body('periode')
         .notEmpty().withMessage('Periode tidak boleh kosong.')
         .isString()
         .withMessage('Periode harus berupa string'),
-    body('TanggalAwal')
+    body('tanggalAwal')
         .notEmpty().withMessage('Tanggal Awal tidak boleh kosong.')
         .isString()
         .withMessage('Tanggal Awal harus berupa string'),
-    body('TanggalAkhir')
+    body('tanggalAkhir')
         .notEmpty().withMessage('Tanggal Akhir tidak boleh kosong.')
         .isString()
         .withMessage('Tanggal Akhir harus berupa string'),
-    body('PricePerLiter')
+    body('pricePerLiter')
         .notEmpty().withMessage('Harga air tidak boleh kosong.')
         .isInt()
         .withMessage('Harga air harus berupa number'),
