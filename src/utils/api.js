@@ -137,7 +137,7 @@ async function createWaterPrice(data) {
 
       const waterPrice = await waterPriceResponse.json();
 
-      console.log(waterPrice[waterPrice.length - 1]);
+      await syncronizeWaterPrice();
       return waterPrice[waterPrice.length - 1];
     }
   } catch (error) {

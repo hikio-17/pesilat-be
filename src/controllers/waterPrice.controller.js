@@ -55,11 +55,6 @@ router.post('/water-price', validateWaterPriceData, authCheck, superAdmin, async
     // created Water Price
     const waterPrice = await createWaterPrice(FormData);
 
-    console.log(waterPrice, 'ini hasil created nya');
-
-    // Inser to db
-    await database('waterprice').insert(waterPrice);
-
     res.status(200).json({
         status: 'success',
         data: {
