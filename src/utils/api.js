@@ -125,7 +125,6 @@ async function createWaterPrice(data) {
     });
 
     const isWaterPriceCreated = await waterPriceResponse.json();
-    console.log(isWaterPriceCreated, 'erro dari sini');
     if (isWaterPriceCreated) {
       const waterPriceResponse = await fetch('https://waterpositive.my.id/api/WaterPrice/GetAllData', {
         method: 'GET',

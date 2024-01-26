@@ -40,22 +40,18 @@ router.get('/water-price/:id', asyncHandler(async (req, res) => {
     });
 }));
 
-router.post('/water-price', validateWaterPriceData, authCheck, superAdmin, asyncHandler(async (req, res) => {
-    const waterPriceData = {
-        ...req.body,
-        updatedBy: req.user.fullName,
-    };
-
-    console.log(waterPriceData)
-    const formData = new FormData();
-
-    for (const [key, value] of Object.entries(waterPriceData)) {
-        formData.set(key, value);
-    }
-
+router.post('/water-price', authCheck, superAdmin, asyncHandler(async (req, res) => {
+    console.log(req.body)
     // created Water Price
-    const waterPrice = await createWaterPrice(FormData);
+    const payload = new FormData();
 
+    Object.keys(req.body).forEach((key) => {
+        payload.append(key, req.body[key])
+    });
+
+    console.log(payload);
+
+    const waterPrice = await createWaterPrice(payload);
     res.status(200).json({
         status: 'success',
         data: {
