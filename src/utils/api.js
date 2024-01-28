@@ -97,7 +97,7 @@ async function updateUserById(data, id) {
           Authorization: `Bearer ${token}`,
         },
       });
-    
+
       const users = await usersResponse.json();
       const userUpdated = users.find((item) => item.id == id);
       return userUpdated;
@@ -169,6 +169,20 @@ async function getAllUsers() {
   return users;
 }
 
+async function getWaterTankData() {
+  const token = await getAccessToken();
+  const responseUsers = await fetch('https://waterpositive.my.id/api/WaterTankData/GetLastData?Count=1', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  const data = await responseUsers.json();
+
+  return data;
+}
+
 async function syncronizeWaterDepots() {
   try {
     const token = await getAccessToken();
@@ -220,6 +234,7 @@ module.exports = {
   updateWaterPriceById,
   deleteWaterPriceById,
   getAllUsers,
+  getWaterTankData,
   syncronizeWaterDepots,
   syncronizeWaterUsages,
   syncronizeWaterPrice,

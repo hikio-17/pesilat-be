@@ -5,20 +5,23 @@ const NotFoundError = require('../exeptions/NotFoundError');
 const AuthorizationError = require('../exeptions/AuthorizationError');
 const { database } = require('../database');
 const { superAdmin, authCheck } = require('../middlewares/auth');
+const { getWaterTankData } = require('../utils/api');
 
 const router = express.Router();
 
 router.get('/sensor/data', authCheck, asyncHandler(async (req, res) => {
     let sensordata;
     let waterStatus;
+    let waterTankData;
 
     if (req.user.role === 0) {
         sensordata = await database('sensordatas');
+        waterTankData = await getWaterTankData();
     }
 
     if (req.user.role === 1) {
         sensordata = await database('sensordatas').where({ waterDepotId: req.user.depotId });
-        // const waterCapacity = await database('waterdepots').where({ id: req.user.depotId });
+        waterTankData = await getWaterTankData();
 
         // if (sensordata[0].waterLevel <= (waterCapacity[0].waterLevel * 0.333)) {
         //     waterStatus = "Merah";
@@ -27,7 +30,7 @@ router.get('/sensor/data', authCheck, asyncHandler(async (req, res) => {
         // } else if (sensordata[0].waterLevel > (waterCapacity[0].waterLevel * 0.667)) {
         //     waterStatus = "Hijau";
         // }
-        
+
 
         if (sensordata[0].waterLevel <= (5000 * 0.333)) {
             waterStatus = "Merah";
@@ -47,6 +50,7 @@ router.get('/sensor/data', authCheck, asyncHandler(async (req, res) => {
         data: {
             sensordata,
             waterStatus,
+            waterTankData,
         },
     });
 }));
