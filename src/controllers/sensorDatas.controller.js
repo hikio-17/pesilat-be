@@ -13,24 +13,18 @@ router.get('/sensor/data', authCheck, asyncHandler(async (req, res) => {
     let sensordata;
     let waterStatus;
     let waterTankData;
+    let userUtilization = 0;
 
     if (req.user.role === 0) {
         sensordata = await database('sensordatas');
         waterTankData = await getWaterTankData();
+        userData = await database('users');
     }
 
     if (req.user.role === 1) {
         sensordata = await database('sensordatas').where({ waterDepotId: req.user.depotId });
         waterTankData = await getWaterTankData();
-
-        // if (sensordata[0].waterLevel <= (waterCapacity[0].waterLevel * 0.333)) {
-        //     waterStatus = "Merah";
-        // } else if (sensordata[0].waterLevel > (waterCapacity[0].waterLevel * 0.333) && sensordata[0].waterLevel <= (waterCapacity[0].waterLevel * 0.667)) {
-        //     waterStatus = "Kuning";
-        // } else if (sensordata[0].waterLevel > (waterCapacity[0].waterLevel * 0.667)) {
-        //     waterStatus = "Hijau";
-        // }
-
+        userData = await database('users');
 
         if (sensordata[0].waterLevel <= (5000 * 0.333)) {
             waterStatus = "Merah";
@@ -41,9 +35,12 @@ router.get('/sensor/data', authCheck, asyncHandler(async (req, res) => {
         }
     }
 
-    if (!sensordata) {
+    if (!sensordata || !waterTankData) {
         throw new NotFoundError(`Data tidak ditemukan`);
     }
+
+    const activeUsersCount = userData.filter(user => user.active).length;
+    userUtilization = (activeUsersCount / userData.length) * 100;
 
     res.status(200).json({
         status: 'success',
@@ -51,6 +48,7 @@ router.get('/sensor/data', authCheck, asyncHandler(async (req, res) => {
             sensordata,
             waterStatus,
             waterTankData,
+            userUtilization,
         },
     });
 }));
