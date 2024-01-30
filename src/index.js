@@ -40,15 +40,27 @@ app.get('/api/test', (req, res) => {
   res.send(filter);
 })
 
-cron.schedule('0 */3 * * *', async () => {
-  try {
-    await api.syncronizeWaterDepots();
-    await api.syncronizeWaterPrice();
-    await api.syncronizeWaterUsages();
-  } catch (error) {
-    console.log(error)
+// cron.schedule('0 */3 * * *', async () => {
+//   try {
+//     await api.syncronizeWaterDepots();
+//     await api.syncronizeWaterPrice();
+//     await api.syncronizeWaterUsages();
+//   } catch (error) {
+//     console.log(error)
+//   }
+// });
+
+function myFunction() {
+  const today = new Date();
+  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+
+  if (today.getDate() === lastDayOfMonth) {
+    console.log('Fungsi dijalankan pada akhir bulan.');
   }
-});
+}
+
+cron.schedule('0 0 0 * *', myFunction);
+
 
 app.use(errorHandler)
 
