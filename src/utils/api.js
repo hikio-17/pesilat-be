@@ -79,6 +79,7 @@ async function createUser(data) {
 async function updateUserById(data, id) {
 
   try {
+    console.log(data)
     const token = await getAccessToken();
     const userResponse = await fetch('https://waterpositive.my.id/api/UserProfile/UpdateData', {
       method: 'PUT',
@@ -100,6 +101,7 @@ async function updateUserById(data, id) {
 
       const users = await usersResponse.json();
       const userUpdated = users.find((item) => item.id == id);
+      // console.log(userUpdated);
       return userUpdated;
     }
 
@@ -162,8 +164,6 @@ async function getAllUsers() {
 
   const users = await responseUsers.json();
 
-  console.log('users', users);
-
   return users;
 }
 
@@ -223,6 +223,38 @@ async function syncronizeWaterPrice() {
   }
 }
 
+async function updateActiveUserStatus() {
+  try {
+    mostRecentUpdate = await database('waterusage').select('userId')
+      .max('updatedDate as mostRecentDate')
+      .groupBy('userId');
+
+    const currentDate = new Date();
+
+    for (const entry of mostRecentUpdate) {
+      const mostRecentDate = new Date(entry.mostRecentDate);
+      const timeDifference = currentDate.getTime() - mostRecentDate.getTime();
+      const daysDifference = Math.floor(timeDifference / (1000 * 3600 * 24));
+
+      const allUsersData = await getAllUsers();
+
+      const userData = allUsersData.filter((item) => item.id === entry.userId)
+      const formData = new FormData();
+      for (const [key, value] of Object.entries(userData[0])) {
+        formData.set(key, value);
+      }
+      formData.set('aktif', daysDifference <= 30 ? 'true' : 'false');
+      formData.set('updatedDate', new Date().toISOString());
+
+      await updateUserById(formData, entry.userId);
+      await database('users').where('id', entry.userId).update({ aktif: daysDifference <= 30 });
+    }
+
+  } catch (error) {
+    console.log(error);
+  }
+}
+
 module.exports = {
   getAccessToken,
   createUser,
@@ -236,4 +268,5 @@ module.exports = {
   syncronizeWaterDepots,
   syncronizeWaterUsages,
   syncronizeWaterPrice,
+  updateActiveUserStatus,
 }
