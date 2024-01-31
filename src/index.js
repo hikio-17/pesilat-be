@@ -14,7 +14,6 @@ const waterDepotsController = require('./controllers/waterDepots.controller')
 const waterUsagesController = require('./controllers/waterUsage.controller')
 const waterPriceController = require('./controllers/waterPrice.controller')
 const sensorDataController = require('./controllers/sensorDatas.controller')
-const api = require('./utils/api')
 
 const app = express()
 
@@ -33,7 +32,7 @@ app.use('/api/v1', authController)
 app.use('/api/v1', waterDepotsController)
 app.use('/api/v1', waterUsagesController)
 app.use('/api/v1', waterPriceController)
-app.use('/api/v1', sensorDataController)
+app.use('/api/v1', sensorDataController);
 
 // cron.schedule('0 0 23 *', api.updateActiveUserStatus);
 

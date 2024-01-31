@@ -69,7 +69,7 @@ async function createUser(data) {
 
       const users = await usersResponse.json();
 
-      return users.slice(-1)[0];
+      return users[users.length - 1];
     }
   } catch (error) {
     console.log('CREATE USER FROM API ERROR', error)
