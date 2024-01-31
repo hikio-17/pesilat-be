@@ -460,4 +460,22 @@ router.post('/waterusage', asyncHandler(async (req, res) => {
     });
 }));
 
+router.get('/waterusage/userutilization', asyncHandler(async (req, res) => {
+
+    userData = await database('users');
+    const activeUsersCount = userData.filter(user => user.aktif).length;
+    userUtilization = (activeUsersCount / userData.length) * 100;
+
+    waterUsage = await database('waterusage').sum('volume as totalVolume');
+    const totalWaterUsage = waterUsage[0].totalVolume;
+
+    res.status(200).json({
+        status: 'success',
+        data: {
+            userUtilization,
+            totalWaterUsage,
+        },
+    });
+}));
+
 module.exports = router;
