@@ -26,7 +26,7 @@ router.post('/auth', asyncHandler(async (req, res) => {
   const isValidPassword = await bcrypt.compare(password, user.password);
 
   if (!isValidPassword) {
-    throw new AuthenticationError('Kredensial yang anda berikan tidak valid');
+    throw new AuthenticationError('Nik atau password yang anda masukkan salah');
   }
 
   const accessToken = await createAccessToken(user);
