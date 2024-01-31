@@ -182,7 +182,7 @@ router.post(
     // }
 
     Object.keys(req.body).forEach(key => {
-      payload.append(key, req.body[key])
+      formData.append(key, req.body[key])
     })
 
     formData.append('password', hashedPassword)
