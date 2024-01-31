@@ -40,7 +40,7 @@ router.get('/water-price/:id', asyncHandler(async (req, res) => {
     });
 }));
 
-router.post('/water-price', authCheck, superAdmin, asyncHandler(async (req, res) => {
+router.post('/water-price', authCheck, asyncHandler(async (req, res) => {
     console.log(req.body)
     // created Water Price
     const payload = new FormData();
