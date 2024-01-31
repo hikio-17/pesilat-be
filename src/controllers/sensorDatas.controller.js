@@ -13,6 +13,7 @@ router.get('/sensor/data', authCheck, asyncHandler(async (req, res) => {
     let sensordata;
     let waterStatus;
     let waterTankData;
+    let userData;
     let userUtilization = 0;
 
     if (req.user.role === 0) {
@@ -39,7 +40,7 @@ router.get('/sensor/data', authCheck, asyncHandler(async (req, res) => {
         throw new NotFoundError(`Data tidak ditemukan`);
     }
 
-    const activeUsersCount = userData.filter(user => user.active).length;
+    const activeUsersCount = userData.filter(user => user.aktif).length;
     userUtilization = (activeUsersCount / userData.length) * 100;
 
     res.status(200).json({

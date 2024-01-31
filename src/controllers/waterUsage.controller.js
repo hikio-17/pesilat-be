@@ -136,7 +136,7 @@ router.get('/admin/water/usage/weekly', authCheck, asyncHandler(async (req, res)
     });
 }));
 
-router.get('/admin/water/usage/weekly:id', authCheck, asyncHandler(async (req, res) => {
+router.get('/admin/water/usage/weekly/:id', authCheck, asyncHandler(async (req, res) => {
 
     const { id } = req.params;
 
@@ -459,24 +459,5 @@ router.post('/waterusage', asyncHandler(async (req, res) => {
         },
     });
 }));
-
-router.delete('/waterusage', asyncHandler(async (req, res) => {
-    // const { id } = req.params;
-
-    // // const waterDepot = await database('waterusage').where({ id }).first();
-
-    // if (!waterDepot) {
-    //     throw new NotFoundError(`Tidak dapat menghapus data. Water usage dengan id ${id} tidak ditemukan.`);
-    // }
-
-    await database('waterusage').del();
-
-    res.status(200).json({
-        status: 'success',
-        message: `Water usage berhasil dihapus`,
-    });
-}));
-
-
 
 module.exports = router;
