@@ -68,6 +68,7 @@ async function createUser(data) {
       });
 
       const users = await usersResponse.json();
+      console.log(users.slice(-1)[0])
 
       return users[users.length - 1];
     }
